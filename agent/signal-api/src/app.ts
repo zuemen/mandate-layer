@@ -64,7 +64,7 @@ export const MAX_TIMEOUT_SECONDS = 60;
 // 免費 demo 的預設分析對象：當未帶 trader、未設 DEMO_TRADER_ADDRESS 且鏈上
 // registry 尚無註冊 trader 時，退回這個已知有鏈上活動的地址（treasury/deployer），
 // 讓「訪客試買」仍能回真實訊號。可用 DEMO_TRADER_ADDRESS env 覆寫。
-// Demo User of pepelab-colosseum's own deployment — the address whose positions the demo opens.
+// Demo User of mandate-layer's own deployment — the address whose positions the demo opens.
 const DEFAULT_DEMO_TRADER = "0x2F188C934ffFa25D2af8354eb18fAE65038F5467";
 
 const provider = makeProvider();

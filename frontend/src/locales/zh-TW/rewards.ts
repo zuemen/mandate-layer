@@ -8,7 +8,7 @@ export const rewards = {
   connectWallet: '連接錢包以查看你的獎勵。',
   connectTitle: '🎁 獎勵',
 
-  title: '🎁 PepeLab 獎勵',
+  title: '🎁 獎勵',
   subtitle: '交易、跟單、每日簽到，賺取 PEPE。',
 
   /** 合約沒部署在這條鏈上時，四個領取動作共用的同一句話。 */

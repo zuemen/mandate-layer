@@ -1,4 +1,4 @@
-# PepeLab — Telegram 交易 agent
+# Mandate Layer — Telegram 交易 agent
 
 > ⚠️ **Inherited from the pre-contest capstone project.** Contract addresses and session ids in this file refer to the capstone deployment, not to the contest deployment. Current addresses: `frontend/src/contracts/addresses.ts` and the main README. Do not send transactions to the addresses below.
 

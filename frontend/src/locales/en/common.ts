@@ -8,7 +8,7 @@ export const common: Catalog['common'] = {
   wallet: {
     dialogTitle: 'Connect Wallet',
     closeAria: 'Close wallet connection dialog',
-    intro: 'Choose your sign-in channel to enter the PepeLab on-chain RWA platform.',
+    intro: 'Choose your sign-in channel to enter Mandate Layer on Base Sepolia.',
 
     metamaskTitle: 'Connect with MetaMask',
     metamaskDesc: 'Connect via the MetaMask browser extension (Base Sepolia)',

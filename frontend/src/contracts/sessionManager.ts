@@ -15,7 +15,7 @@ const ZERO = '0x0000000000000000000000000000000000000000'
 const SESSION_MANAGER_ADDRESS: Record<number, string> = {
   31337:    ZERO, // Anvil：跑 deploy-anvil.sh 後填入
   11155111: ZERO, // Sepolia：跑 deploy-sepolia.sh 後填入
-  // Base Sepolia — pepelab-colosseum's own AgentSessionManager (Deploy.s.sol,
+  // Base Sepolia — mandate-layer's own AgentSessionManager (Deploy.s.sol,
   // 2026-09-23), bound to this repo's exchange 0xC45dEd77…3B0E and the only
   // agent that exchange authorizes. The original project's managers are
   // intentionally not referenced.

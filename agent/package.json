@@ -2,7 +2,7 @@
   "name": "pepelab-agent",
   "private": true,
   "version": "0.2.0",
-  "description": "PepeLab x402 + AI Agent — Phase 1 PoC (read-only)",
+  "description": "Mandate Layer x402 + AI Agent — Phase 1 PoC (read-only)",
   "type": "module",
   "workspaces": [
     "shared",

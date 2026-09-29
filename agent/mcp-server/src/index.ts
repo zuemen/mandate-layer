@@ -1,4 +1,4 @@
-// PepeLab MCP Server
+// Mandate Layer MCP Server
 // 把協議狀態包成 MCP tools，讓 Claude 這類 agent 直接查詢與下單：
 //   read:
 //     - get_trader_performance  → StrategyRegistry + 鏈上 PnL 聚合

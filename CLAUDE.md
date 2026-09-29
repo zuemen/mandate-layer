@@ -6,7 +6,7 @@ Start here on a new machine or in the cloud: `docs/agents/NEXT_SESSION.md` holds
 
 ### Issue tracker
 
-Issues are tracked in GitHub Issues (zuemen/pepelab-colosseum), via the `gh` CLI. **Never create, comment on, or edit issues in the original repo zuemen/pepelab_onchain_cfd** — this is a competition-only import. See `docs/agents/issue-tracker.md`.
+Issues are tracked in GitHub Issues (zuemen/mandate-layer), via the `gh` CLI. **Never create, comment on, or edit issues in the original repo zuemen/pepelab_onchain_cfd** — this is a competition-only import. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

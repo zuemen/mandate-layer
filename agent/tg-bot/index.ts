@@ -129,7 +129,7 @@ export function checkBounds(leverage: number, marginUsdc: number): string | null
 
 const bot = new TelegramBot(TOKEN, { polling: true });
 const HELP =
-  "PepeLab 交易 agent。自然語言下單，例如：\n• 做多 sBTC 3x 保證金 50\n• 做空 sETH 槓桿2 保證金 40\n" +
+  "Mandate Layer 交易 agent。自然語言下單，例如：\n• 做多 sBTC 3x 保證金 50\n• 做空 sETH 槓桿2 保證金 40\n" +
   "指令：/pos 查 session ・ /help 說明\n" +
   `限額：槓桿 ≤ ${MAX_LEVERAGE}x、保證金 ${MIN_MARGIN}–${MAX_MARGIN}；另受 session 與 VC 約束，超過會被拒絕。`;
 
@@ -183,5 +183,5 @@ bot.on("message", async (msg) => {
 });
 
 console.log(
-  `PepeLab TG agent 上線。session #${SESSION_ID}，VC 已驗證，允許 chat：${[...ALLOWED_CHATS].join(", ")}。`,
+  `Mandate Layer TG agent 上線。session #${SESSION_ID}，VC 已驗證，允許 chat：${[...ALLOWED_CHATS].join(", ")}。`,
 );

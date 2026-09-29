@@ -24,7 +24,7 @@ import {
 import { isUserRejection, sendCallsAndWait, supportsAtomicBatch, walletError, type SendOutcome } from 'src/lib/pepefi/walletCalls'
 
 const BASE_SEPOLIA = 84532
-const RECORDED_RUN = 'https://github.com/zuemen/pepelab-colosseum/blob/hackathon/colosseum-worldsfair/demo/SPEND_PERMISSIONS_RUN.md'
+const RECORDED_RUN = 'https://github.com/zuemen/mandate-layer/blob/hackathon/colosseum-worldsfair/demo/SPEND_PERMISSIONS_RUN.md'
 const ERC20 = new ethers.Interface(['function balanceOf(address) view returns (uint256)'])
 
 /** What the connected account can do. */

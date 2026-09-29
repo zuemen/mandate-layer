@@ -3,7 +3,7 @@ name: Admin — Base Sepolia owner call
 # Runs an owner-only call on any Base Sepolia contract using the keeper key
 # stored in repo secrets. Manual trigger only.
 #
-# pepelab-colosseum（2026-09-23）：KEEPER_PRIVATE_KEY 只擁有本 repo 的 MockOracle
+# mandate-layer（2026-09-23）：KEEPER_PRIVATE_KEY 只擁有本 repo 的 MockOracle
 # 0x7c7FD433…Bb49（owner = keeper 0x3649247f…3e95）。exchange、FeeRouter 等其餘合約的
 # owner 是部署者 0xB98BA27B…3a02，那把鑰匙刻意不放進 GitHub secrets，所以對它們的
 # 呼叫從這裡會 revert。本 workflow 絕不可指向原專案 pepelab_onchain_cfd 的任何合約。

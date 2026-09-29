@@ -19,7 +19,7 @@ set -euo pipefail
 
 # Base Sepolia 已部署位址（AgentSessionManager，**現行版本**）
 #
-# pepelab-colosseum 自己的 AgentSessionManager（Deploy.s.sol，2026-09-23）。
+# mandate-layer 自己的 AgentSessionManager（Deploy.s.sol，2026-09-23）。
 # 它綁定本 repo 的 exchange 0xC45dEd77…3B0E，也是該 exchange 唯一授權的 agent。
 # 刻意不引用原專案 pepelab_onchain_cfd 的任何 manager —— 本 repo 不得寫入原專案合約。
 SESSION_MGR="0x71125e25c903AD4e198e1863d5Bf26df97926CDe"

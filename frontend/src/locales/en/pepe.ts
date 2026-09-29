@@ -8,7 +8,7 @@ export const pepe: Catalog['pepe'] = {
   skin: {
     'skin-01': {
       name: 'Interstellar Explorer Pepe',
-      desc: 'An elite Pepe explorer drifting between the stars and the DeFi void, laser sword in hand, sworn to push PepeLab into deep space!',
+      desc: 'An elite Pepe explorer drifting between the stars and the DeFi void, laser sword in hand, sworn to push the lab into deep space!',
     },
     'skin-02': {
       name: 'Master Chef Pepe',

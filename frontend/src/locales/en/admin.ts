@@ -156,7 +156,7 @@ export const admin: Catalog['admin'] = {
     },
 
     incentives: {
-      title: '🎁 PepeLab Incentives Pool Refill',
+      title: '🎁 Incentives Pool Refill',
       description:
         'Copy rewards, daily check-in, tier upgrades, and trade mining are all incentivized with PEPE. Keep this incentives contract stocked with enough PEPE to avoid a revert InsufficientPool error when users claim.',
       walletBalance: 'My Wallet PEPE Balance',

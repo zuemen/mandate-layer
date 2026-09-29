@@ -48,8 +48,8 @@ export const exchange: Catalog['exchange'] = {
    * `<strong>前綴：</strong> 說明` 的句中夾標記，和幣別說明那段一起留給 #36。
    */
   guide: {
-    title: 'How CFD trading works on PepeLab',
-    spotTitle: 'How to buy and sell tokenized assets on PepeLab',
+    title: 'How CFD trading works on Mandate Layer',
+    spotTitle: 'How to buy and sell tokenized assets on Mandate Layer',
   },
 
   /** 水龍頭區塊。三種代幣共用同一組「領取中／領取 X／尚未部署」的字。 */

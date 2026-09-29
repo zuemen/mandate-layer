@@ -43,7 +43,7 @@ const PRODUCTS = [
 ] as const
 
 const OFFICIAL_USDC = '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
-// pepelab-colosseum's own x402 FeeRouter (DeployX402Router, 2026-09-23), bound to
+// mandate-layer's own x402 FeeRouter (DeployX402Router, 2026-09-23), bound to
 // Circle's official Base Sepolia USDC. Not the original project's router.
 const X402_FEE_ROUTER = '0xEeDcEE7cD62A644EA4Cf053f213d5D75dB0B49c6'
 const basescanTx = (h: string) => `https://sepolia.basescan.org/tx/${h}`

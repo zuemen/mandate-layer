@@ -12,7 +12,7 @@
 | Agent packages | `0.2.0`（master 為 `0.1.0`） |
 
 ## Focus for this submission
-PepeLab on-chain CFD + **x402 paid API layer and autonomous AI-agent trading** (see [`docs/DESIGN_x402_AI_AGENT.md`](docs/DESIGN_x402_AI_AGENT.md) and `agent/examples/x402-*`), deployed on Base.
+Mandate Layer (the on-chain CFD developed as PepeLab) + **x402 paid API layer and autonomous AI-agent trading** (see [`docs/DESIGN_x402_AI_AGENT.md`](docs/DESIGN_x402_AI_AGENT.md) and `agent/examples/x402-*`), deployed on Base.
 
 ## Rules to remember
 - All submission content must be in English.
@@ -20,7 +20,7 @@ PepeLab on-chain CFD + **x402 paid API layer and autonomous AI-agent trading** (
 - Judged on functionality, impact, novelty, UX, open-source composability, business plan.
 
 ## Merge policy
-This repo (`zuemen/pepelab-colosseum`) is a competition-only import of `zuemen/pepelab_onchain_cfd` (imported at `5bb8be3`, full history kept). Nothing is pushed back to the original repo.
+This repo (`zuemen/mandate-layer`, formerly `zuemen/pepelab-colosseum`) is a competition-only import of `zuemen/pepelab_onchain_cfd` (imported at `5bb8be3`, full history kept). Nothing is pushed back to the original repo.
 
 ## Isolation rule — this repo never touches the original deployment
 The original project's contracts on Base Sepolia stay exactly as they are. This repo:

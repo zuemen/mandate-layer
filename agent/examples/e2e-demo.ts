@@ -137,7 +137,7 @@ async function main() {
   const assetId = ethers.id(SYMBOL);
   const fee = (await exchange.executionFee()) as bigint;
 
-  console.log(`\n=== PepeLab agent-session e2e demo (Base Sepolia) ===`);
+  console.log(`\n=== Mandate Layer agent-session e2e demo (Base Sepolia) ===`);
   console.log(`User  ${user.address}\nAgent ${agent.address}\nSessionManager ${SESSION_MANAGER}\nExchange ${ADDRESSES.PerpetualExchange}\nSignal API ${API}\n`);
 
   // Fail fast if the signal-api is not up — the x402 step is the point of the demo.

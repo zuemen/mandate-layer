@@ -9,7 +9,7 @@ export const common = {
   wallet: {
     dialogTitle: '連接帳號 / Connect Wallet',
     closeAria: '關閉錢包連線視窗',
-    intro: '選擇您的登入通道以進入 PepeLab 鏈上 RWA 平台。',
+    intro: '選擇您的登入通道以進入 Mandate Layer（Base Sepolia）。',
 
     metamaskTitle: 'MetaMask 錢包連線',
     metamaskDesc: '透過 MetaMask 瀏覽器擴充功能連線 (Base Sepolia)',

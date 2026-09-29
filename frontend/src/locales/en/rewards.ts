@@ -7,7 +7,7 @@ export const rewards: Catalog['rewards'] = {
   connectWallet: 'Connect wallet to view your rewards.',
   connectTitle: '🎁 Rewards',
 
-  title: '🎁 PepeLab Rewards',
+  title: '🎁 Rewards',
   subtitle: 'Trade, follow, and check-in daily to earn PEPE.',
 
   /** 合約沒部署在這條鏈上時，四個領取動作共用的同一句話。 */

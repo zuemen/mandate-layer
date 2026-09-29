@@ -5,7 +5,7 @@
  * 東西，能證明整條路線接通了。原本寫死在 index.html 裡。
  */
 export const meta = {
-  title: 'PepeLab · Agent 原生代幣化 RWA',
+  title: 'Mandate Layer · AI agent 的鏈上交易委託',
   description:
-    'PepeLab — 基於 Base 鏈的 Agent 原生代幣化 RWA 平台。鏈上買賣股債金幣 + x402 付費訊號 + 社交跟單。',
+    'Mandate Layer：由 Base 上的合約執行的 AI agent 交易委託。每筆上限、總預算、槓桿與資產白名單逐筆檢查，x402 按次付費資料，以及 Base Sepolia 上的代幣化資產。',
 };

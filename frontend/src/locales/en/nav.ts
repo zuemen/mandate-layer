@@ -5,12 +5,12 @@ import type { Catalog } from '../zh-TW';
  */
 export const nav: Catalog['nav'] = {
   section: {
-    pepelab: 'PepeLab',
+    pepelab: 'Mandate Layer',
     trader: 'Trader',
   },
   item: {
     portfolio: '🏠 Portfolio',
-    pepe: '🐸 Pepe Growth Center',
+    pepe: '🎮 Growth Center',
     exchange: 'Funding & Swap',
     tokens: '🪙 Assets',
     terminal: 'Pro Terminal (advanced)',
@@ -31,8 +31,8 @@ export const nav: Catalog['nav'] = {
     profile: 'My Trader Profile',
     potions: 'Potion Shop',
     mounts: 'My Mounts',
-    skins: 'Pepe Skins & Gacha',
+    skins: 'Skins & Gacha',
     staking: 'Staking DeFi Yields',
-    rewards: 'PepeLab Rewards 🎁',
+    rewards: 'Rewards 🎁',
   },
 };

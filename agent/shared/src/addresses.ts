@@ -9,7 +9,7 @@ import {
 
 // Phase 4 目標鏈：Base Sepolia（chainId 84532）—— 與 x402 USDC 結算同鏈，
 // 解掉舊的跨鏈 caveat（合約讀取與 x402 收款／FeeRouter 分潤全在同一條鏈）。
-// 可用 env AGENT_CHAIN_ID 覆寫。pepelab-colosseum 不支援 Sepolia 11155111（那是原專案的部署），設了會直接報錯。
+// 可用 env AGENT_CHAIN_ID 覆寫。mandate-layer 不支援 Sepolia 11155111（那是原專案的部署），設了會直接報錯。
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
 export const AGENT_CHAIN_ID = Number(
   process.env.AGENT_CHAIN_ID ?? BASE_SEPOLIA_CHAIN_ID,

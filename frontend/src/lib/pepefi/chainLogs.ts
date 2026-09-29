@@ -23,7 +23,7 @@ export const DEPLOY_BLOCK_BY_CHAIN: Record<number, number> = {
   // Ethereum Sepolia：Exchange + Seed 的部署塊。
   11155111: 10_874_200,
   // Base Sepolia：contracts/broadcast/Deploy.s.sol/84532/run-1790157165167.json 的第一筆 receipt。
-  84532: 47_194_407, // pepelab-colosseum own deployment (2026-09-23)
+  84532: 47_194_407, // mandate-layer own deployment (2026-09-23)
 }
 
 /** 各鏈的實際出塊時間（秒）。用它把「N 塊以前」換算成時間，反之亦然。 */

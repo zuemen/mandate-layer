@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>Mandate Layer</title>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#0f1410"/>
+  <rect x="12" y="12" width="40" height="40" rx="4" fill="none" stroke="#8fd14f" stroke-width="3.5"/>
+  <line x1="12" y1="24" x2="52" y2="24" stroke="#F5C518" stroke-width="3" stroke-dasharray="4.5 3"/>
+  <polyline points="17,46 25,37 31,41 39,29 44,24" fill="none" stroke="#8fd14f" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="44" cy="24" r="3.6" fill="#0f1410" stroke="#F5C518" stroke-width="2.6"/>
+</svg>

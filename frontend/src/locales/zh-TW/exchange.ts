@@ -57,9 +57,9 @@ export const exchange = {
    * `<strong>前綴：</strong> 說明` 的句中夾標記，和幣別說明那段一起留給 #36。
    */
   guide: {
-    title: 'PepeLab 上的 CFD 交易如何運作',
+    title: 'Mandate Layer 上的 CFD 交易如何運作',
     /** SHOW_PERPETUALS 關閉時的版本——那時這一頁沒有開倉面板,教 CFD 只會讓人去找一個不存在的東西。 */
-    spotTitle: '在 PepeLab 上買賣代幣化資產',
+    spotTitle: '在 Mandate Layer 上買賣代幣化資產',
   },
 
   /** 水龍頭區塊。三種代幣共用同一組「領取中／領取 X／尚未部署」的字。 */

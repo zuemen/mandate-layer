@@ -22,7 +22,7 @@ with a mock wallet injected into the page.
 
 ## What was run
 
-`demo/e2e/base_account_fork_e2e.py` runs the E2E against <https://zuemen.github.io/pepelab-colosseum>:
+`demo/e2e/base_account_fork_e2e.py` runs the E2E against <https://zuemen.github.io/mandate-layer>:
 
 - 2026-09-24: at commit `7a10249`, and again after the first review fixes at `f57a933`.
 - 2026-09-29: after each of three review rounds (`1cfa0f3`, `5a61953`, `830f2f5`) and last at `94d2225` (bundle
@@ -130,7 +130,7 @@ python demo/e2e/base_account_fork_e2e.py existing     # or: fresh, undeployed, r
 ```
 
 A second argument points the script at another site, e.g. a local `vite` dev server started with the Pages settings
-(`VITE_LOCALE=en VITE_BASE_PATH=/pepelab-colosseum/ VITE_ASSETS_DIR=/pepelab-colosseum`; in Git Bash also
-`MSYS_NO_PATHCONV=1`): `python demo/e2e/base_account_fork_e2e.py undeployed http://localhost:5173/pepelab-colosseum`.
+(`VITE_LOCALE=en VITE_BASE_PATH=/mandate-layer/ VITE_ASSETS_DIR=/mandate-layer`; in Git Bash also
+`MSYS_NO_PATHCONV=1`): `python demo/e2e/base_account_fork_e2e.py undeployed http://localhost:5173/mandate-layer`.
 
 Screenshots, the permission JSON, the credential and `result.json` are written to `demo/e2e/out/<scenario>/` (ignored by git).

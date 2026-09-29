@@ -1,6 +1,6 @@
 name: Deploy frontend to GitHub Pages
 
-# Public, wallet-free demo for judges: https://zuemen.github.io/pepelab-colosseum/agent-mode
+# Public, wallet-free demo for judges: https://zuemen.github.io/mandate-layer/agent-mode
 # English build (VITE_LOCALE=en) served under the repo sub-path (VITE_BASE_PATH).
 # This repo's own deployment only — it never uses the original project's Vercel.
 on:
@@ -42,9 +42,9 @@ jobs:
       - name: Build (English, sub-path)
         env:
           VITE_LOCALE: en
-          VITE_BASE_PATH: /pepelab-colosseum/
+          VITE_BASE_PATH: /mandate-layer/
           # Template paths built at runtime as `${CONFIG.assetsDir}/assets/...` (nav icons).
-          VITE_ASSETS_DIR: /pepelab-colosseum
+          VITE_ASSETS_DIR: /mandate-layer
         run: yarn build
 
       # GitHub Pages has no SPA rewrites: serve index.html for unknown paths so

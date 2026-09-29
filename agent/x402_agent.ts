@@ -41,7 +41,7 @@ const RPC =
 const CHAIN_ID = 84532; // Base Sepolia
 
 // Session Key configuration (Phase 2 — autonomous trading)
-// pepelab-colosseum 自己的 AgentSessionManager（2026-09-23 部署，帶 per-session 資產白名單）。
+// mandate-layer 自己的 AgentSessionManager（2026-09-23 部署，帶 per-session 資產白名單）。
 // 刻意不引用原專案 pepelab_onchain_cfd 的任何 manager。
 const SESSION_MANAGER =
   process.env.SESSION_MANAGER_ADDRESS?.trim() ||
@@ -311,7 +311,7 @@ async function executeTradeViaSession(
 
 // ── Main ───────────────────────────────────────────────────────────────────
 async function main(): Promise<void> {
-  banner("🐸 PepeLab x402 Autonomous Agent — Base Sepolia");
+  banner("Mandate Layer x402 Autonomous Agent — Base Sepolia");
 
   // Validate private key
   const hasKey = PK.startsWith("0x") && PK.length === 66;

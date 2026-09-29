@@ -245,7 +245,7 @@ async function paidRun() {
 }
 
 async function main() {
-  banner("PepeLab Demo Agent — x402 付費 → 自主下單（Base Sepolia）");
+  banner("Mandate Layer Demo Agent — x402 付費 → 自主下單（Base Sepolia）");
   await resolveTrader();
   console.log(`Signal API : ${API}`);
   console.log(`分析 trader : ${TRADER}${process.env.DEMO_TRADER_ADDRESS ? "" : "（自動挑選鏈上首位）"}`);

@@ -1,4 +1,4 @@
-# PepeLab Agent — x402 + AI Agent PoC
+# Mandate Layer Agent — x402 + AI Agent PoC
 
 對應 `docs/DESIGN_x402_AI_AGENT.md`。Phase 1 = read-only 訊號層；Phase 2 加入
 **經 `AgentSessionManager` session 限額的自主下單**（write path）。

@@ -180,7 +180,7 @@ export default function SessionsPage() {
     mcpServers: {
       'pepelab-cfd': {
         command: 'npx',
-        args: ['-y', 'tsx', '/path/to/pepelab-colosseum/agent/mcp-server/src/index.ts'],
+        args: ['-y', 'tsx', '/path/to/mandate-layer/agent/mcp-server/src/index.ts'],
         env: {
           AGENT_PRIVATE_KEY:
             includeKey && genKeyMatchesAgent(agentAddr) && genKey

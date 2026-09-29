@@ -1,12 +1,12 @@
-# PepeLab — bounded AI agents for on-chain derivatives
+# Mandate Layer — bounded AI agents for on-chain derivatives
 
 **One line:** a user gives an AI agent a trading mandate — per-trade margin, total budget, max leverage, allowed assets, expiry — and a contract on Base enforces it on every order, while the agent pays for its market data per call over x402.
 
-Colosseum Crypto World's Fair · Base track · repo `zuemen/pepelab-colosseum` · all contracts on **Base Sepolia (84532)**.
+Colosseum Crypto World's Fair · Base track · repo `zuemen/mandate-layer` · all contracts on **Base Sepolia (84532)**.
 
-**Live, no wallet needed:** https://zuemen.github.io/pepelab-colosseum/agent-mode
+**Live, no wallet needed:** https://zuemen.github.io/mandate-layer/agent-mode
 
-**Development history:** PepeLab started on 2026-05-05 as our NCCU capstone project, before this contest. Section 12 discloses the prior work and lists what we built during the contest (Sep 14 – Oct 12, 2026).
+**Development history:** Mandate Layer started on 2026-05-05 as our NCCU capstone project, then called PepeLab, before this contest. Section 12 discloses the prior work and lists what we built during the contest (Sep 14 – Oct 12, 2026).
 
 ---
 
@@ -185,7 +185,7 @@ Colosseum asks for go-to-market, demand validation and distribution. Facts and h
 | GMX One-Click Trading | — | — | — | expiry / action count | — | venue |
 | Base Spend Permissions | token allowance per period | — | — | yes | — | wallet |
 | Avantis via Base MCP | user signs each action | — | — | n/a | — | human |
-| **PepeLab session + VC** | **yes** | **yes** | **yes** | **yes** | **x402** | **contract** |
+| **Mandate Layer session + VC** | **yes** | **yes** | **yes** | **yes** | **x402** | **contract** |
 
 Sources: see §1 (read 2026-09-23). A dash means the source documents no such control.
 
@@ -212,7 +212,7 @@ Security history: [`docs/audit/AUDIT_2026-08-06.md`](audit/AUDIT_2026-08-06.md).
 
 ## 12. Development history and disclosure
 
-**This product was not started at the hackathon.** PepeLab began on 2026-05-05 as our NCCU Capstone 2026 project. The repository keeps its full git history: 624 commits before the contest opened (Sep 14, 2026, 06:00 PT) and 88 during it so far (75 authored commits and 13 GitHub merge commits, as of Sep 29, 2026). Net change since the last pre-contest commit (`3118824`): 203 files, +9,987 / −5,058 lines, not counting generated deployment records under `contracts/broadcast`. Colosseum judges only the work done during the contest, so this section separates the two. Every hash below is in this repository.
+**This product was not started at the hackathon.** It began on 2026-05-05 as our NCCU Capstone 2026 project under the name PepeLab; we renamed it Mandate Layer for this submission on 2026-09-29 (the repository was `zuemen/pepelab-colosseum` until then). The git history, the EIP-712 domain names (`PepeLabAgentAuthorization`, `PepeLabAgentVerification`) and some code identifiers (`pepefi`, `pepelab_*`) keep the old name: changing them would invalidate signed credentials. The repository keeps its full git history: 624 commits before the contest opened (Sep 14, 2026, 06:00 PT) and 88 during it so far (75 authored commits and 13 GitHub merge commits, as of Sep 29, 2026). Net change since the last pre-contest commit (`3118824`): 203 files, +9,987 / −5,058 lines, not counting generated deployment records under `contracts/broadcast`. Colosseum judges only the work done during the contest, so this section separates the two. Every hash below is in this repository.
 
 ### Prior work (before Sep 14, 2026)
 

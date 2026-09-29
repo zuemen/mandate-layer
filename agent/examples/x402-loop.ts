@@ -24,7 +24,7 @@ const API = (process.env.X402_API_URL ?? "http://localhost:4021").replace(/\/$/,
 const PK = process.env.AGENT_PRIVATE_KEY?.trim();
 const RPC = process.env.BASE_SEPOLIA_RPC_URL?.trim() || "https://sepolia.base.org";
 // session id 是每個 manager 各自獨立的。本 repo 的 AgentSessionManager 是
-// 0x71125e25…6CDe（pepelab-colosseum 自己的部署）；session 由 create-session.sh 建立。
+// 0x71125e25…6CDe（mandate-layer 自己的部署）；session 由 create-session.sh 建立。
 // 預設 X402_API_URL 指向本機 signal-api —— 不得付費或寫入原專案 pepelab_onchain_cfd 的服務。
 const SESSION_ID = Number(process.env.DEMO_SESSION_ID ?? "0");
 const ASSETS = (process.env.ASSETS ?? "sBTC,sETH").split(",").map((s) => s.trim()).filter(Boolean);

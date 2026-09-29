@@ -5,18 +5,18 @@ function djb2(s: string): number {
 }
 
 export const AVATAR_FILES: string[] = [
-  '/avatars/pepe-01.png',
-  '/avatars/pepe-02.png',
-  '/avatars/pepe-03.png',
-  '/avatars/pepe-04.png',
-  '/avatars/pepe-05.png',
-  '/avatars/pepe-06.png',
-  '/avatars/pepe-07.png',
-  '/avatars/pepe-08.png',
-  '/avatars/pepe-09.png',
-  '/avatars/pepe-10.png',
-  '/avatars/pepe-11.png',
-  '/avatars/pepe-12.jpg',
+  '/avatars/mark-01.svg',
+  '/avatars/mark-02.svg',
+  '/avatars/mark-03.svg',
+  '/avatars/mark-04.svg',
+  '/avatars/mark-05.svg',
+  '/avatars/mark-06.svg',
+  '/avatars/mark-07.svg',
+  '/avatars/mark-08.svg',
+  '/avatars/mark-09.svg',
+  '/avatars/mark-10.svg',
+  '/avatars/mark-11.svg',
+  '/avatars/mark-12.svg',
 ];
 
 export function avatarFor(address: string | null | undefined): string {

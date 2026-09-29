@@ -7,12 +7,12 @@
  */
 export const nav = {
   section: {
-    pepelab: 'PepeLab',
+    pepelab: 'Mandate Layer',
     trader: '交易者',
   },
   item: {
     portfolio: '🏠 投資組合',
-    pepe: '🐸 Pepe 養成中心',
+    pepe: '🎮 養成中心',
     exchange: '入金與兌換',
     tokens: '🪙 資產',
     terminal: '專業終端（進階）',

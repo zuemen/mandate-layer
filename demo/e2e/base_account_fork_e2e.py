@@ -49,7 +49,7 @@ from playwright.sync_api import sync_playwright
 
 RPC = 'http://127.0.0.1:8545'
 SCENARIO = sys.argv[1] if len(sys.argv) > 1 else 'existing'
-SITE = (sys.argv[2] if len(sys.argv) > 2 else 'https://zuemen.github.io/pepelab-colosseum').rstrip('/')
+SITE = (sys.argv[2] if len(sys.argv) > 2 else 'https://zuemen.github.io/mandate-layer').rstrip('/')
 OUT = Path(__file__).parent / 'out' / SCENARIO
 OUT.mkdir(parents=True, exist_ok=True)
 AGENT_DIR = Path(__file__).resolve().parents[2] / 'agent'
@@ -278,7 +278,7 @@ INIT = """
 """
 
 
-PAGES_SITE = 'https://zuemen.github.io/pepelab-colosseum'
+PAGES_SITE = 'https://zuemen.github.io/mandate-layer'
 
 
 def git(*args: str) -> subprocess.CompletedProcess:
@@ -298,9 +298,9 @@ def tested_build(page) -> dict:
              'repo_dirty': bool(git('status', '--porcelain').stdout.strip())}
     if SITE == PAGES_SITE:
         deployed = None
-        for line in gh_api('repos/zuemen/pepelab-colosseum/deployments?environment=github-pages&per_page=10', '.[] | "\(.id) \(.sha)"').splitlines():
+        for line in gh_api('repos/zuemen/mandate-layer/deployments?environment=github-pages&per_page=10', '.[] | "\(.id) \(.sha)"').splitlines():
             dep_id, sha = line.split()
-            if gh_api(f'repos/zuemen/pepelab-colosseum/deployments/{dep_id}/statuses?per_page=1', '.[0].state') == 'success':
+            if gh_api(f'repos/zuemen/mandate-layer/deployments/{dep_id}/statuses?per_page=1', '.[0].state') == 'success':
                 deployed = sha
                 break
         build['pages_deployed_sha'] = deployed

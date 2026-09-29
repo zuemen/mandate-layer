@@ -48,11 +48,11 @@ const ANVIL: ChainAddresses = {
 
 // ── Sepolia testnet (chainId 11155111) — not supported in this repo ──────────
 // Every Sepolia contract belongs to the original pepelab_onchain_cfd
-// deployment. pepelab-colosseum must never send a transaction to it, so the
+// deployment. mandate-layer must never send a transaction to it, so the
 // chain is left out of CHAIN_MAP and the UI treats it as an unsupported network.
 
 // ── Base Sepolia testnet (chainId 84532) ──────────────────────────────────────
-// pepelab-colosseum's OWN deployment (Deploy.s.sol broadcast 2026-09-23 by
+// mandate-layer's OWN deployment (Deploy.s.sol broadcast 2026-09-23 by
 // 0xB98BA27B…3a02; broadcast/Deploy.s.sol/84532/run-latest.json). It shares
 // nothing with the original pepelab_onchain_cfd deployment: every contract is
 // new and no transaction was ever sent to an original-project address.
@@ -172,7 +172,7 @@ export type AssetSymbol  = keyof typeof ASSET_IDS
 // a "not enabled yet" notice instead of failing.
 export const SYNTH_TOKENS: Record<number, Partial<Record<AssetSymbol, string>>> = {
   31337:    {},
-  // pepelab-colosseum has not deployed the tokenized layer on Base Sepolia;
+  // mandate-layer has not deployed the tokenized layer on Base Sepolia;
   // the original project's SyntheticAssets are intentionally not listed here.
   84532: {},
 }
@@ -203,7 +203,7 @@ export const V2_STACK: Record<number, {
   SustainabilityBadge?: string
   tokens: Partial<Record<AssetSymbol, string>>
 }> = {
-  // Base Sepolia (84532): pepelab-colosseum has no hardened stack deployed.
+  // Base Sepolia (84532): mandate-layer has no hardened stack deployed.
   // The original project's V2 contracts are intentionally not listed here, so
   // hasV2Stack(84532) is false and the UI renders its "not deployed" path.
 }

@@ -29,18 +29,13 @@ export function Logo({
   const pepeImg = (size: number) => (
     <Box
       component="img"
-      src="/avatars/pepe-01.png"
-      alt="PepeLab"
-      onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-        e.currentTarget.src = '/assets/images/pepefi/pepe_eth.jpg';
-      }}
+      src="/logo/mandate-mark.svg"
+      alt="Mandate Layer"
       sx={{
         width: size,
         height: size,
-        borderRadius: '50%',
-        objectFit: 'cover',
-        border: '2px solid var(--palette-primary-main)',
-        boxShadow: '0 0 8px rgba(124,193,74,0.5)',
+        borderRadius: '8px',
+        boxShadow: '0 0 8px rgba(124,193,74,0.35)',
         flexShrink: 0,
       }}
     />
@@ -61,7 +56,7 @@ export function Logo({
           letterSpacing: '-0.5px',
         }}
       >
-        PepeLab
+        Mandate Layer
       </Typography>
     </Box>
   );

@@ -56,7 +56,7 @@ describe('deployBlock', () => {
 
 describe('scanFromBlock', () => {
   it('部署塊很久以前時,滾動視窗把起點夾住', () => {
-    // 這正是 F-3 的病徵：部署塊（pepelab-colosseum 為 47.19M）遠早於現在的高度，
+    // 這正是 F-3 的病徵：部署塊（mandate-layer 為 47.19M）遠早於現在的高度，
     // 直接從部署塊掃就是 5M 塊 ÷ 9,900 = 500 多次 getLogs。
     const currentBlock = 48_000_000
     const from = scanFromBlock({ chainId: 84532, currentBlock })

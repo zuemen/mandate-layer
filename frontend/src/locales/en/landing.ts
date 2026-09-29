@@ -4,9 +4,9 @@ import type { Catalog } from '../zh-TW';
  * 見 `../zh-TW/landing.ts`。
  */
 export const landing: Catalog['landing'] = {
-  tagline: 'Bounded AI agents · On-chain derivatives 🐸',
+  tagline: 'Bounded AI agents · On-chain derivatives',
   brandLine: 'agent mandates enforced on chain · on Base',
-  enterDashboard: '🐸 Enter Dashboard',
+  enterDashboard: 'Enter Dashboard',
   viewTraders: 'View Traders',
   agentModeCta: 'See the agent in action →',
   connectHint: 'Connect to browse every feature directly — no account required.',

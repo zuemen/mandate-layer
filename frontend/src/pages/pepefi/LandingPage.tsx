@@ -98,11 +98,11 @@ export default function LandingPage() {
           >
             {/* Left: text */}
             <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'left' } }}>
-              {/* PepeLab wordmark */}
+              {/* Wordmark */}
               <Typography
                 variant="h1"
                 sx={{
-                  fontSize: { xs: '4rem', md: '7rem' },
+                  fontSize: { xs: '3rem', md: '5rem' },
                   fontWeight: 900,
                   lineHeight: 0.95,
                   color: 'var(--palette-primary-main)',
@@ -110,7 +110,7 @@ export default function LandingPage() {
                   mb: 1.5,
                 }}
               >
-                PepeLab
+                Mandate Layer
               </Typography>
 
               {/* Mono kicker — "on-chain terminal" cred */}
@@ -189,7 +189,7 @@ export default function LandingPage() {
               </Stack>
             </Box>
 
-            {/* Right: Pepe hero image */}
+            {/* Right: the mandate, drawn: a session boundary and a path stopped at the per-trade cap */}
             <Box sx={{
               position: 'relative',
               flexShrink: 0,
@@ -199,8 +199,8 @@ export default function LandingPage() {
               {/* Glow ring */}
               <Box sx={{
                 position: 'absolute', inset: -8,
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(124,193,74,0.4) 0%, transparent 70%)',
+                borderRadius: '24px',
+                background: 'radial-gradient(circle, rgba(124,193,74,0.25) 0%, transparent 70%)',
                 animation: 'pulse 2s ease-in-out infinite',
                 '@keyframes pulse': {
                   '0%,100%': { opacity: 0.6, transform: 'scale(1)' },
@@ -209,29 +209,18 @@ export default function LandingPage() {
               }} />
               <Box
                 component="img"
-                src="/assets/images/pepefi/pepe-hero.webp"
-                alt="PepeLab Mascot"
+                src="/assets/images/pepefi/mandate-hero.svg"
+                alt="A trading path inside a session boundary, stopped at the per-trade cap"
                 sx={{
                   width: '100%', height: '100%',
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: '4px solid var(--palette-primary-main)',
-                  boxShadow: '0 0 48px rgba(124,193,74,0.5), 0 0 96px rgba(255,210,61,0.2)',
+                  borderRadius: '16px',
+                  objectFit: 'contain',
+                  bgcolor: '#0f1410',
+                  border: '2px solid var(--palette-primary-main)',
+                  boxShadow: '0 0 48px rgba(124,193,74,0.35)',
                   position: 'relative', zIndex: 1,
                 }}
-                onError={(e) => { (e.target as HTMLImageElement).src = '/assets/images/pepefi/pepe_eth.jpg'; }}
               />
-              {/* Gold badge overlay */}
-              <Box sx={{
-                position: 'absolute', bottom: 12, right: 12, zIndex: 2,
-                bgcolor: 'var(--palette-secondary-main)', color: '#1C252E',
-                borderRadius: '50%', width: 48, height: 48,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 22, fontWeight: 900,
-                boxShadow: '0 4px 12px rgba(255,210,61,0.6)',
-              }}>
-                🐸
-              </Box>
             </Box>
           </Stack>
         </Box>
