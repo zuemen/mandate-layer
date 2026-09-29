@@ -175,7 +175,7 @@ Colosseum asks for go-to-market, demand validation and distribution. Facts and h
 
 **What we charge (hypotheses, not yet validated).** Data and signals: per call over x402 at a price the provider sets; the 20% platform and 10% vault shares are already routed on chain. Mandate layer: a license per venue or per active session.
 
-**Demand validation.** Until October 12 we interview agent builders, trading teams on Base and data sellers with a fixed script (their past behaviour first, our product last) and record every conversation. Validation so far: none recorded yet (as of 2026-09-24). We will update this line with real numbers only.
+**Demand validation.** Until October 12 we interview agent builders, trading teams on Base and data sellers with a fixed script (their past behaviour first, our product last) and record every conversation. Validation so far: none recorded yet (as of 2026-09-29). We will update this line with real numbers only.
 
 ## 9. Competitive landscape
 
@@ -249,11 +249,19 @@ The first week of the contest went to the retail app, before we committed to thi
 
 ## 13. Team
 
-<!-- TODO(user): names, roles, one line each on background. University: NCCU (University Award). -->
+**NewJeans always five** — National Chengchi University (NCCU), Taipei, Taiwan. All three of us are NCCU Management Information Systems undergraduates.
+
+| Member | Role | Background |
+|---|---|---|
+| Ting-Yi (Zuemen) Chu | Founder, lead developer: smart contracts, agent SDK and MCP server, frontend | Research assistant on smart-contract security and on AI + quantum computing at NCCU. Led ChainLens (FinTech Taipei Awards 2026 finalist); Merit Award, Ministry of Digital Affairs Digital Credential Scenario Innovation Challenge (2025). |
+| Wang Lei | Market researcher and analyst | Advertising, graphic design, data analysis and marketing. |
+| Ko Ying-Wen | Engineer, trading systems | Built a perpetual-futures trading bot with a daily-loss circuit breaker and a live commercial booking system; co-author of a paper accepted at AMCIS 2026. |
+
+How we found the problem: we built an on-chain perpetuals exchange as our capstone and wanted AI agents to trade on it. The only options were handing an agent our key or approving every order, so we made the mandate a signed credential and the limits a rule the contract checks.
 
 ## AI usage
 
-We build with an AI coding assistant (Claude Code). Commits it co-wrote carry a `Co-Authored-By: Claude` trailer. As of Sep 24, 2026, all 53 authored commits of the contest period carry it; the other 13 contest-period commits are GitHub merge commits.
+We build with an AI coding assistant (Claude Code). Commits it co-wrote carry a `Co-Authored-By: Claude` trailer. As of Sep 29, 2026, all 76 authored commits of the contest period carry it; the other 13 contest-period commits are GitHub merge commits. The product demo video was also produced with the assistant: a script drives the live site in a browser, and the narration is a synthetic voice.
 
 | The assistant | The team |
 |---|---|
