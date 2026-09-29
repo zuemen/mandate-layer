@@ -442,6 +442,8 @@ def main() -> int:
                 card.get_by_text('mUSDC in this account').wait_for(timeout=30_000)
             except Exception:
                 pass
+            # The agent field is empty after a reload, which alone would disable the button: fill it again.
+            page.get_by_placeholder('0x… or click Generate agent key on the right').fill(AGENT)
             kept = card.locator('pre')
             survived = (card.get_by_text('mUSDC in this account').count() == 1 and fix.count() == 1 and kept.count() == 1
                         and kept.inner_text() == shown and not cta.is_enabled() and status.inner_text().strip().startswith('One step left'))

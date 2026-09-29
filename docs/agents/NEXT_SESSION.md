@@ -1,4 +1,4 @@
-# Next session: handoff (written 2026-09-25)
+# Next session: handoff (written 2026-09-25, updated 2026-09-29)
 
 For an agent picking this repo up on a **different machine or in the cloud**. Everything needed is in this
 repo; nothing depends on the previous machine. Work through the task table in order and append to the
@@ -19,7 +19,12 @@ progress log at the bottom as you go.
   - ERC-1271 (Base Account) credentials accepted at every agent entry point.
   - Avatars resized; docs synced.
 - On 2026-09-25 two more reviews came back: R1, a fresh review of the fixes, and R2, research. Their findings are
-  the task table below. **None of these fixes has been started.**
+  the task table below.
+- **2026-09-29: tasks 1–9 are done**, followed by three more fresh-review rounds on the fixes (R3–R6; the last one
+  found no new bug). Commits `886ab7f`, `1cfa0f3`, `5a61953`, `830f2f5`, `94d2225` and the docs commit after them.
+  Frontend 39 files, 562 tests (CI green). Fork E2E against the deployed site at `94d2225`: `existing` 22/22,
+  `fresh` 22/22, `undeployed` 30/30, `reject` 9/9 (`demo/BASE_ACCOUNT_UI_E2E.md`). The review reports are kept outside
+  the repo, in the user's competition folder. Nothing was sent to Base Sepolia.
 
 ## Rules
 
@@ -106,7 +111,7 @@ Checks (baseline at hand-off):
 
 ## Tasks, in priority order
 
-Read each file before changing it. Line numbers are as of commit `1dc65b0`.
+**All done on 2026-09-29** (see the progress log); kept for the record. Line numbers are as of commit `1dc65b0`.
 
 | # | Priority | Where | What to do |
 |---|---|---|---|
@@ -170,3 +175,12 @@ Still for the user alone, not the agent:
 Append one line per step: `[date output] task # — status — evidence (commit, test counts) | next: …`
 
 - [2026-09-25 09:57 (previous machine; its clock ran about 5h26m slow)] Handoff written; tasks 1–9 not started.
+- [Tue Sep 29 09:16:33 2026] Picked up on the original machine (repo at `45af5dc`, clean; its clock now agrees with a Base Sepolia fork's block time). Tasks 1–9 started.
+- [Tue Sep 29 09:45:41 2026] Tasks 1–9 done — `886ab7f` (card fix button, sendCallsAndWait, no status flicker, Retry, badHours, version/unsupported checks, Agent Mode link), `1cfa0f3` (E2E `undeployed`, no-flash check, reject cleanup, tested build); frontend 535 → 549 | next: Pages, E2E, fresh review.
+- [Tue Sep 29 09:54:11 2026] E2E on the deployed site at `1cfa0f3`: existing 21/21, fresh 21/21, reject 8/8, undeployed 27/27. Fresh review R3: 3 medium, 3 low (fix not tied to the account, 1.0 fallback unreachable for MetaMask's -32000, a single post-batch read could hide the fix).
+- [Tue Sep 29 10:06:00 2026] R3 fixes pushed — `5a61953`; frontend 555. E2E at `5a61953`: 21/21, 21/21, 8/8, 28/28.
+- [Tue Sep 29 10:17:27 2026] Fresh review R4 of `5a61953`: F1/F2/F4/F5 fixed, F3/F6 partly; four new, all low.
+- [Tue Sep 29 10:37:10 2026] R4 fixes pushed — `830f2f5` (one classifier for owner reads, pending fix and JSON kept in sessionStorage, build check against the frontend tree); frontend 561. E2E at `830f2f5`: 22/22, 22/22, 9/9, 30/30.
+- [Tue Sep 29 10:45:08 2026] Fresh review R5 of `830f2f5`: R4 items fixed (N2 partly); four new, all low (two were regressions of `830f2f5`).
+- [Tue Sep 29 10:50:51 2026] R5 fixes pushed — `94d2225`; frontend 562 (CI green). E2E at `94d2225`: existing 22/22, fresh 22/22, reject 9/9, undeployed 30/30.
+- [Tue Sep 29 11:01:15 2026] Final narrow review R6 of `94d2225`: P1–P4 fixed, no new bug; one test-only gap (agent field empty after the reload) fixed in the E2E. Docs synced (E2E report, SPEND_PERMISSIONS open items, SUBMISSION §5 and §12, HACKATHON test count) | next: the user's own items (keeper top-up before about Oct 7; optionally one real Base Account run).

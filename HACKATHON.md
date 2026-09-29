@@ -93,7 +93,7 @@ The demo surfaced an SDK bug, fixed here: `AGENT_SESSION_MANAGER_ABI` lacked the
 
 ## CI baseline at import (local run, 2026-09-23)
 - Agent CI: install / typecheck / tests / bundle drift check — all pass
-- Frontend CI: install / build / tests — all pass (33 files, 494 tests at import; 39 files, 535 tests after the Base Account work of 2026-09-24)
+- Frontend CI: install / build / tests — all pass (33 files, 494 tests at import; 39 files, 535 tests after the Base Account work of 2026-09-24; 39 files, 562 tests after the review fixes of 2026-09-29)
 - Contracts CI: `forge build --sizes` + `forge test` — all pass (2026-09-24, run 35967351546: 80 suites, 773 tests; forge 1.8 counts the six invariants of `AgentSessionInvariantTest` as one test)
 
 Nothing was broken at import, so P0-1 needed no code fixes.

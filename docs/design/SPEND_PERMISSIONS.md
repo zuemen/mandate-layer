@@ -59,6 +59,6 @@ Both are in `contracts/script/DeploySpendPermissionFunder.s.sol` (checks the cha
 ## Open items
 
 - The in-app card has not been tried with a real Base Account popup, only with a mock wallet on a fork.
-- An account the wallet has not deployed yet: the card relies on the wallet deploying it with SpendPermissionManager as an owner; this path was not exercised.
+- An account the wallet has not deployed yet: the batch never adds SpendPermissionManager itself (if the wallet's initCode already lists it, `AlreadyOwner` would revert the whole batch). If the wallet creates the account without it, the card notices after the batch and offers a one-call fix (`addOwnerAddress` from the account; no new session). The fork browser test covers this worst case (`undeployed`). Whether new Base Accounts list SpendPermissionManager from the start is not known.
 - Counterfactual (not yet deployed) Base Accounts: their ERC-6492 signatures are not accepted for the VC; the account must be deployed first.
 - Only MockUSDC (the testnet margin token) is covered; nothing here touches mainnet.
