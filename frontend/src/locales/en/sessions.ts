@@ -109,6 +109,12 @@ export const sessions: Catalog['sessions'] = {
     noSpmOwner:
       'Your Base Account was created without SpendPermissionManager as an owner, so the agent cannot use the Spend Permission yet. Add it with one call from your account; this opens no new session.',
     addOwnerCta: 'Add SpendPermissionManager as owner',
+    ownerPending:
+      'One step left: SpendPermissionManager must become an owner of this account before the agent can use the Spend Permission (see below).',
+    spmOwnerUnknown:
+      "Could not confirm yet whether the new Base Account lists SpendPermissionManager as an owner. The agent's top-ups only work if it does.",
+    checkAgain: 'Check again',
+    reading: 'Reading the account…',
     fixDone: 'SpendPermissionManager is now an owner of this account. The agent can use the Spend Permission below.',
     fixTimeout:
       'Submitted, but not confirmed after 90 seconds. Check your wallet, then press the button again: it reads the account first and sends nothing if SpendPermissionManager is already an owner.',

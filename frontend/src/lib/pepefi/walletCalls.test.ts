@@ -122,6 +122,12 @@ describe('錢包錯誤經過 ethers 包裝後（卡片實際拿到的形狀）',
 })
 
 describe('isVersionMismatch 只認「錢包不接受 2.0.0」，其他錯誤不會用 1.0 重送（重送＝第二次錢包彈窗）', () => {
+  it('MetaMask 的實際格式（-32000 invalidInput「Version not supported: Got …, expected …」）→ 是，而且不算「錢包不支援」', async () => {
+    // MetaMask/core packages/eip-5792-middleware/src/hooks/processSendCalls.ts validateSendCallsVersion
+    const e = await sendCallsError({ code: -32000, message: 'Version not supported: Got 2.0.0, expected 1.0' })
+    expect(isVersionMismatch(e)).toBe(true)
+    expect(isUnsupportedMethod(e)).toBe(false)
+  })
   it('-32602 且訊息提到 wallet_sendCalls／2.0.0／version → 是', async () => {
     expect(isVersionMismatch(await sendCallsError({ code: -32602, message: 'Unsupported wallet_sendCalls version: 2.0.0' }))).toBe(true)
     expect(isVersionMismatch(await sendCallsError({ code: -32602, message: 'invalid params: expected version "1.0"' }))).toBe(true)
@@ -200,6 +206,14 @@ describe('sendCallsAndWait（兩顆按鈕共用的送出＋輪詢）', () => {
     const { provider, sent } = mockWallet(() => { throw { code: -32603, message: 'Internal error: bad version' } }, [])
     await expect(sendCallsAndWait(provider, calls, FROM, 84532, noSleep)).rejects.toBeDefined()
     expect(sent).toEqual(['2.0.0'])
+  })
+  it('MetaMask 格式的版本錯誤 → 用 1.0 重送，不會報「錢包不支援」', async () => {
+    const { provider, sent } = mockWallet((v) => {
+      if (v === '2.0.0') throw { code: -32000, message: 'Version not supported: Got 2.0.0, expected 1.0' }
+      return 'b6'
+    }, [confirmed])
+    expect(await sendCallsAndWait(provider, calls, FROM, 84532, noSleep)).toEqual({ kind: 'confirmed', txHash: '0xaaa' })
+    expect(sent).toEqual(['2.0.0', '1.0'])
   })
   it('錢包沒有 wallet_sendCalls → unsupported', async () => {
     const { provider } = mockWallet(() => { throw { code: 4200, message: 'The requested method is not supported' } }, [])

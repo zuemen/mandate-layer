@@ -18,7 +18,10 @@ const FUNDER = new ethers.Interface(['function setTopUpAgent(address agent)'])
 const SESSIONS = new ethers.Interface([
   'function createSessionWithAssets(address agent,uint256 maxMarginPerTrade,uint256 totalMarginBudget,uint256 maxLeverage,uint256 expiry,bytes32[] allowedAssets) returns (uint256)',
 ])
-const WALLET = new ethers.Interface(['function addOwnerAddress(address owner)'])
+const WALLET = new ethers.Interface([
+  'function addOwnerAddress(address owner)',
+  'function isOwnerAddress(address account) view returns (bool)',
+])
 
 export interface SetupParams {
   account: string
@@ -85,4 +88,37 @@ export function buildSetupCalls(p: SetupParams): Call[] {
   ]
   if (p.addSpmOwner) calls.unshift(addSpmOwnerCall(perm.account))
   return calls
+}
+
+/** The reads readSpmOwner needs (ethers' BrowserProvider has them). */
+export interface AccountReader {
+  getCode(address: string): Promise<string>
+  call(tx: { to: string; data: string }): Promise<string>
+}
+
+/** Does the deployed account list SpendPermissionManager as an owner? Throws if the read fails or it is not a Coinbase Smart Wallet. */
+export async function spmIsOwner(reader: AccountReader, account: string): Promise<boolean> {
+  const raw = await reader.call({ to: account, data: WALLET.encodeFunctionData('isOwnerAddress', [SPEND_PERMISSION_MANAGER]) })
+  return WALLET.decodeFunctionResult('isOwnerAddress', raw)[0] as boolean
+}
+
+/**
+ * After a batch that created the account: a definite yes/no on SpendPermissionManager being an owner.
+ * The wallet's receipt can arrive before the node we read from has the block (no code yet, or an empty
+ * answer from the new account), so failed or empty reads are retried; 'unknown' if they never succeed.
+ */
+export async function readSpmOwner(
+  reader: AccountReader,
+  account: string,
+  { tries = 5, sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms)) } = {},
+): Promise<'yes' | 'no' | 'unknown'> {
+  for (let i = 0; i < tries; i++) {
+    try {
+      if ((await reader.getCode(account)) !== '0x') return (await spmIsOwner(reader, account)) ? 'yes' : 'no'
+    } catch {
+      // retry
+    }
+    if (i < tries - 1) await sleep(2_000)
+  }
+  return 'unknown'
 }

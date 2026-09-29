@@ -2,7 +2,7 @@
 // The batch is the same one that ran on Base Sepolia on 2026-09-24 (demo/SPEND_PERMISSIONS_RUN.md);
 // a test pins the encoding to that transaction.
 import { useEffect, useState } from 'react'
-import { ethers, isAddress, parseUnits, formatUnits } from 'ethers'
+import { ethers, isAddress, isError, parseUnits, formatUnits } from 'ethers'
 
 import Card from '@mui/material/Card'
 import Link from '@mui/material/Link'
@@ -18,12 +18,13 @@ import { explorerTx } from 'src/lib/pepefi/notify'
 import { MONO } from 'src/components/pepefi/brandKit'
 import { getSessionManagerAddress } from 'src/contracts/sessionManager'
 import { ASSET_IDS, getAddresses } from 'src/contracts/addresses'
-import { MAX_UINT48, SPEND_PERMISSION_MANAGER, addSpmOwnerCall, buildSetupCalls, permissionJsonOf } from 'src/lib/pepefi/baseAccountSetup'
+import {
+  MAX_UINT48, addSpmOwnerCall, buildSetupCalls, permissionJsonOf, readSpmOwner, spmIsOwner,
+} from 'src/lib/pepefi/baseAccountSetup'
 import { isUserRejection, sendCallsAndWait, supportsAtomicBatch, walletError, type SendOutcome } from 'src/lib/pepefi/walletCalls'
 
 const BASE_SEPOLIA = 84532
 const RECORDED_RUN = 'https://github.com/zuemen/pepelab-colosseum/blob/hackathon/colosseum-worldsfair/demo/SPEND_PERMISSIONS_RUN.md'
-const WALLET = new ethers.Interface(['function isOwnerAddress(address account) view returns (bool)'])
 const ERC20 = new ethers.Interface(['function balanceOf(address) view returns (uint256)'])
 
 /** What the connected account can do. */
@@ -39,12 +40,6 @@ interface Props {
   hours: string
   /** Called after the batch confirms, to refresh the session list. */
   onDone: () => void
-}
-
-/** Does the deployed account list SpendPermissionManager as an owner? Throws if it is not a Coinbase Smart Wallet. */
-async function spmIsOwner(provider: ethers.Provider, account: string): Promise<boolean> {
-  const raw = await provider.call({ to: account, data: WALLET.encodeFunctionData('isOwnerAddress', [SPEND_PERMISSION_MANAGER]) })
-  return WALLET.decodeFunctionResult('isOwnerAddress', raw)[0] as boolean
 }
 
 /** The wallet's receipt can arrive before the node we read from has the block: give `check` a few seconds. */
@@ -87,23 +82,31 @@ function ResultAlert({ result }: { result: Result }) {
   )
 }
 
-export default function BaseAccountSetupCard({ agent, perTrade, budget, maxLeverage, hours, onDone }: Props) {
+// Everything the card remembers (status, result, the Spend Permission, the pending owner fix) belongs to
+// one account, so a different account starts a fresh card; replies to an old account's requests are dropped.
+export default function BaseAccountSetupCard(props: Props) {
+  const wallet = usePepefiWallet()
+  return <SetupCard key={wallet.address ?? ''} {...props} />
+}
+
+function SetupCard({ agent, perTrade, budget, maxLeverage, hours, onDone }: Props) {
   const wallet = usePepefiWallet()
   const [allowance, setAllowance] = useState('100')
-  // The last read of the account, tagged with the address it belongs to. A re-read keeps showing it
-  // (no "Checking…" flash, the button stays usable); only a new address starts from "checking".
-  const [account, setAccount] = useState<{ address: string; kind: AccountKind; balance: bigint | null } | null>(null)
+  const [kind, setKind] = useState<AccountKind>('checking')
+  const [balance, setBalance] = useState<bigint | null>(null)
+  // The last read failed: keep showing the last status (readFailed if there was none) and offer Retry.
+  const [readError, setReadError] = useState(false)
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<Result | null>(null)
   const [permission, setPermission] = useState<string | null>(null)
+  // Set only after a confirmed batch from an account that did not exist yet: does the account the wallet
+  // created list SpendPermissionManager as an owner? 'no' shows the fix, 'unknown' a way to read it again.
+  const [spmOwner, setSpmOwner] = useState<'yes' | 'no' | 'unknown' | null>(null)
   const [fixResult, setFixResult] = useState<Result | null>(null)
   // Bumped after every send (and by Retry) so the account status and balance are read again.
   const [recheck, setRecheck] = useState(0)
 
   const onBaseSepolia = wallet.chainId === BASE_SEPOLIA
-  const current = account && account.address === wallet.address ? account : null
-  const kind: AccountKind = current?.kind ?? 'checking'
-  const balance = current?.balance ?? null
 
   // Classify the connected account: deployed Coinbase Smart Wallet (with or without
   // SpendPermissionManager as owner), a wallet that will deploy one, or neither.
@@ -112,20 +115,29 @@ export default function BaseAccountSetupCard({ agent, perTrade, budget, maxLever
     const address = wallet.address
     if (!provider || !address || !onBaseSepolia) return undefined
     let alive = true
+    const failed = () => {
+      if (!alive) return
+      setReadError(true)
+      setKind((k) => (k === 'checking' ? 'readFailed' : k))
+    }
     ;(async () => {
       let next: AccountKind
       let code: string
       try {
         code = await provider.getCode(address)
       } catch {
-        // A failed re-read keeps the last status; only a failed first read shows readFailed (with Retry).
-        if (alive) setAccount((a) => (a?.address === address && a.kind !== 'readFailed' ? a : { address, kind: 'readFailed', balance: null }))
+        failed()
         return
       }
       if (code !== '0x') {
         try {
           next = (await spmIsOwner(provider, address)) ? 'smart' : 'smartAddOwner'
-        } catch {
+        } catch (e) {
+          // A revert or an answer that is not a bool: some other contract. Anything else is a failed read.
+          if (!isError(e, 'CALL_EXCEPTION') && !isError(e, 'BAD_DATA')) {
+            failed()
+            return
+          }
           next = 'notCoinbase'
         }
       } else {
@@ -144,7 +156,11 @@ export default function BaseAccountSetupCard({ agent, perTrade, budget, maxLever
       } catch {
         bal = null
       }
-      if (alive) setAccount((a) => ({ address, kind: next, balance: bal ?? (a?.address === address ? a.balance : null) }))
+      if (alive) {
+        setKind(next)
+        setReadError(false)
+        if (bal !== null) setBalance(bal)
+      }
     })()
     return () => {
       alive = false
@@ -153,9 +169,9 @@ export default function BaseAccountSetupCard({ agent, perTrade, budget, maxLever
 
   const usable = kind === 'smart' || kind === 'smartAddOwner' || kind === 'undeployed'
   const agentOk = isAddress(agent)
-  // After a confirmed batch from an account that did not exist yet: the wallet created it without
-  // SpendPermissionManager as an owner, so the agent's spend would revert until it is added.
-  const needsOwnerFix = permission !== null && kind === 'smartAddOwner'
+  // Until SpendPermissionManager is an owner, the agent's top-ups revert; the main button would open a
+  // second session and approve a second Spend Permission, so the fix below comes first.
+  const ownerPending = spmOwner === 'no' || spmOwner === 'unknown'
 
   const setUp = async () => {
     const provider = wallet.provider
@@ -163,6 +179,7 @@ export default function BaseAccountSetupCard({ agent, perTrade, budget, maxLever
     if (!provider || !address) return
     setResult(null)
     setPermission(null)
+    setSpmOwner(null)
     setFixResult(null)
     // The session must outlive the block it lands in (expiry > now + 60 s); checked before any wallet or RPC call.
     const seconds = Math.round(parseFloat(hours) * 3600)
@@ -178,7 +195,7 @@ export default function BaseAccountSetupCard({ agent, perTrade, budget, maxLever
       // timeout may already have added SpendPermissionManager, and adding it twice reverts.
       // An account that does not exist yet never gets addOwnerAddress in its batch: if the wallet's
       // initCode already lists SpendPermissionManager, AlreadyOwner would revert the whole batch.
-      // The remedy button below covers a wallet that creates the account without it.
+      // If the wallet creates the account without it, the fix below adds it afterwards.
       const deployed = (await provider.getCode(address)) !== '0x'
       const addSpmOwner = deployed && !(await spmIsOwner(provider, address))
       const params = {
@@ -206,7 +223,8 @@ export default function BaseAccountSetupCard({ agent, perTrade, budget, maxLever
       setPermission(JSON.stringify(permissionJsonOf(params), null, 2))
       setResult({ severity: 'success', text: t.sessions.baseAccount.done, txHash: out.txHash })
       onDone()
-      if (!deployed) await settle(async () => (await provider.getCode(address)) !== '0x')
+      // A confirmed batch that included addOwnerAddress means it is an owner now; only a new account needs the check.
+      if (!deployed) setSpmOwner(await readSpmOwner(provider, address))
       else if (addSpmOwner) await settle(() => spmIsOwner(provider, address))
     } catch (e) {
       setResult(errorResult(e))
@@ -226,8 +244,10 @@ export default function BaseAccountSetupCard({ agent, perTrade, budget, maxLever
     setFixResult(null)
     try {
       // An earlier attempt may have landed late; adding it twice reverts (AlreadyOwner).
-      if (await spmIsOwner(provider, address)) {
-        setFixResult({ severity: 'success', text: t.sessions.baseAccount.fixDone })
+      const before = await readSpmOwner(provider, address)
+      if (before !== 'no') {
+        setSpmOwner(before)
+        if (before === 'yes') setFixResult({ severity: 'success', text: t.sessions.baseAccount.fixDone })
         return
       }
       const out = await sendCallsAndWait(provider, [addSpmOwnerCall(address)], address, BASE_SEPOLIA)
@@ -235,6 +255,7 @@ export default function BaseAccountSetupCard({ agent, perTrade, budget, maxLever
         setFixResult(outcomeResult(out, t.sessions.baseAccount.fixTimeout))
         return
       }
+      setSpmOwner('yes')
       setFixResult({ severity: 'success', text: t.sessions.baseAccount.fixDone, txHash: out.txHash })
       await settle(() => spmIsOwner(provider, address))
     } catch (e) {
@@ -245,7 +266,22 @@ export default function BaseAccountSetupCard({ agent, perTrade, budget, maxLever
     }
   }
 
-  const statusText = !onBaseSepolia ? t.sessions.baseAccount.wrongChain : t.sessions.baseAccount[kind]
+  const readOwnerAgain = async () => {
+    const provider = wallet.provider
+    const address = wallet.address
+    if (!provider || !address) return
+    setBusy(true)
+    try {
+      setSpmOwner(await readSpmOwner(provider, address))
+    } finally {
+      setBusy(false)
+      setRecheck((n) => n + 1)
+    }
+  }
+
+  const statusText = !onBaseSepolia
+    ? t.sessions.baseAccount.wrongChain
+    : ownerPending ? t.sessions.baseAccount.ownerPending : t.sessions.baseAccount[kind]
 
   return (
     <Card sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -256,8 +292,8 @@ export default function BaseAccountSetupCard({ agent, perTrade, budget, maxLever
       </Typography>
 
       <Alert
-        severity={onBaseSepolia && usable ? 'info' : 'warning'}
-        action={onBaseSepolia && kind === 'readFailed'
+        severity={onBaseSepolia && usable && !ownerPending ? 'info' : 'warning'}
+        action={onBaseSepolia && readError
           ? <Button color="inherit" size="small" onClick={() => setRecheck((n) => n + 1)}>{t.sessions.baseAccount.retry}</Button>
           : undefined}
       >
@@ -278,7 +314,7 @@ export default function BaseAccountSetupCard({ agent, perTrade, budget, maxLever
           type="number"
           sx={{ maxWidth: 220 }}
         />
-        <Button variant="contained" disabled={busy || !onBaseSepolia || !usable || !agentOk} onClick={() => void setUp()}>
+        <Button variant="contained" disabled={busy || !onBaseSepolia || !usable || !agentOk || ownerPending} onClick={() => void setUp()}>
           {busy ? t.sessions.baseAccount.sending : t.sessions.baseAccount.cta}
         </Button>
       </Stack>
@@ -286,13 +322,19 @@ export default function BaseAccountSetupCard({ agent, perTrade, budget, maxLever
 
       {result && <ResultAlert result={result} />}
 
-      {needsOwnerFix && (
+      {ownerPending && (
         <Alert severity="warning">
           <Stack spacing={1} alignItems="flex-start">
-            <span>{t.sessions.baseAccount.noSpmOwner}</span>
-            <Button size="small" variant="outlined" color="inherit" disabled={busy || !onBaseSepolia} onClick={() => void addOwner()}>
-              {busy ? t.sessions.baseAccount.sending : t.sessions.baseAccount.addOwnerCta}
-            </Button>
+            <span>{spmOwner === 'no' ? t.sessions.baseAccount.noSpmOwner : t.sessions.baseAccount.spmOwnerUnknown}</span>
+            {spmOwner === 'no' ? (
+              <Button size="small" variant="outlined" color="inherit" disabled={busy || !onBaseSepolia} onClick={() => void addOwner()}>
+                {busy ? t.sessions.baseAccount.sending : t.sessions.baseAccount.addOwnerCta}
+              </Button>
+            ) : (
+              <Button size="small" variant="outlined" color="inherit" disabled={busy || !onBaseSepolia} onClick={() => void readOwnerAgain()}>
+                {busy ? t.sessions.baseAccount.reading : t.sessions.baseAccount.checkAgain}
+              </Button>
+            )}
           </Stack>
         </Alert>
       )}

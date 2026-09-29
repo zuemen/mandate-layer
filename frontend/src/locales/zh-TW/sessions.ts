@@ -110,6 +110,10 @@ export const sessions = {
     noSpmOwner:
       '你的 Base Account 建立時沒有把 SpendPermissionManager 設為 owner，agent 暫時還不能使用這份 Spend Permission。按下面的按鈕，由你的帳戶送一筆呼叫把它加上；不會另開 session。',
     addOwnerCta: '把 SpendPermissionManager 加為 owner',
+    ownerPending: '還差一步：要先把 SpendPermissionManager 加為這個帳戶的 owner，agent 才能使用 Spend Permission（見下方）。',
+    spmOwnerUnknown: '還無法確認新的 Base Account 是否已把 SpendPermissionManager 列為 owner；列為 owner 之後，agent 的儲值才會成功。',
+    checkAgain: '再檢查一次',
+    reading: '讀取中…',
     fixDone: 'SpendPermissionManager 已是這個帳戶的 owner，agent 可以使用下方的 Spend Permission。',
     fixTimeout: '已送出，但 90 秒內尚未確認。請查看錢包後再按一次按鈕：它會先讀帳戶，SpendPermissionManager 已是 owner 就不會再送。',
     permissionLabel: '給 agent 的 Spend Permission（top_up_margin 用）',

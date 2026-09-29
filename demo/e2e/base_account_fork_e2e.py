@@ -278,11 +278,23 @@ INIT = """
 """
 
 
+PAGES_SITE = 'https://zuemen.github.io/pepelab-colosseum'
+
+
 def tested_build(page) -> dict:
-    """Which frontend was tested: the page's JS bundle and this checkout's commit."""
-    scripts = page.evaluate("[...document.querySelectorAll('script[src]')].map(s => s.src)")
-    head = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=AGENT_DIR.parent, capture_output=True, text=True).stdout.strip()
-    return {'site_scripts': scripts, 'repo_head': head}
+    """Which frontend was tested. The bundle URL is what the page ran; for the Pages site, the commit its
+    latest deployment was built from (it lags a push by a few minutes) should equal this checkout's HEAD."""
+    def git(*args: str) -> str:
+        return subprocess.run(['git', *args], cwd=AGENT_DIR.parent, capture_output=True, text=True).stdout.strip()
+    build = {'site_scripts': page.evaluate("[...document.querySelectorAll('script[src]')].map(s => s.src)"),
+             'repo_head': git('rev-parse', 'HEAD'), 'repo_dirty': bool(git('status', '--porcelain', '--untracked-files=no'))}
+    if SITE == PAGES_SITE:
+        gh = subprocess.run(['gh', 'api', 'repos/zuemen/pepelab-colosseum/deployments?environment=github-pages&per_page=1', '--jq', '.[0].sha'],
+                            capture_output=True, text=True)
+        build['pages_deployed_sha'] = gh.stdout.strip() or None
+        if build['pages_deployed_sha'] != build['repo_head']:
+            print(f"WARN the Pages site was built from {build['pages_deployed_sha']}, not this checkout's HEAD {build['repo_head']}", flush=True)
+    return build
 
 
 def write_result(**extra) -> int:
@@ -391,6 +403,9 @@ def main() -> int:
             warning = card.locator('.MuiAlert-root', has_text='without SpendPermissionManager as an owner')
             check('remedy button appears after the batch', fix.count() == 1,
                   ' '.join((warning.first.inner_text() if warning.count() else card.inner_text()).split())[:200])
+            pending = status.inner_text().strip()
+            check('until the fix, the status points to it and the main button is disabled (no second session)',
+                  pending.startswith('One step left') and not cta.is_enabled(), pending[:120])
             card.scroll_into_view_if_needed()
             card.screenshot(path=str(OUT / 'card_remedy.png'))
             if fix.count() != 1:

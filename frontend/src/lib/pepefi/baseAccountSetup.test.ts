@@ -11,6 +11,7 @@ import {
   addSpmOwnerCall,
   buildSetupCalls,
   permissionJsonOf,
+  readSpmOwner,
   type SetupParams,
 } from './baseAccountSetup'
 
@@ -84,5 +85,47 @@ describe('permissionJsonOf', () => {
     expect(p.token).toBe(ethers.getAddress(MOCK_USDC))
     expect(p.allowance).toBe(ethers.parseUnits('100', 18).toString())
     expect([p.period, p.start, p.end, p.salt, p.extraData]).toEqual([86_400, recorded.varying.start, Number(MAX_UINT48), recorded.varying.salt, '0x'])
+  })
+})
+
+describe('readSpmOwner（批次建立帳戶之後，SpendPermissionManager 是不是 owner）', () => {
+  const TRUE = ethers.AbiCoder.defaultAbiCoder().encode(['bool'], [true])
+  const FALSE = ethers.AbiCoder.defaultAbiCoder().encode(['bool'], [false])
+  /** A reader that answers from the lists in order (the last answer repeats); `Error` entries throw. */
+  function reader(codes: (string | Error)[], calls: (string | Error)[]) {
+    let c = 0
+    let k = 0
+    const next = (list: (string | Error)[], i: number) => {
+      const v = list[Math.min(i, list.length - 1)]
+      if (v instanceof Error) throw v
+      return v
+    }
+    return {
+      getCode: async () => next(codes, c++),
+      call: async () => next(calls, k++),
+    }
+  }
+  const counting = () => {
+    const s = { n: 0, sleep: async () => { s.n++ } }
+    return s
+  }
+
+  it('已部署且是 owner → yes，不等待', async () => {
+    const s = counting()
+    expect(await readSpmOwner(reader(['0x60'], [TRUE]), recorded.account, s)).toBe('yes')
+    expect(s.n).toBe(0)
+  })
+  it('讀取節點還沒看到帳戶（code 0x）→ 等一下再讀；看到後不是 owner → no', async () => {
+    const s = counting()
+    expect(await readSpmOwner(reader(['0x', '0x', '0x60'], [FALSE]), recorded.account, s)).toBe('no')
+    expect(s.n).toBe(2)
+  })
+  it('新帳戶的 eth_call 回空值（落後的節點）或讀取失敗 → 重試，不直接下結論', async () => {
+    expect(await readSpmOwner(reader(['0x60'], ['0x', new Error('network'), TRUE]), recorded.account, counting())).toBe('yes')
+  })
+  it('一直讀不到 → unknown（試 5 次、等 4 次）', async () => {
+    const s = counting()
+    expect(await readSpmOwner(reader([new Error('network')], [TRUE]), recorded.account, s)).toBe('unknown')
+    expect(s.n).toBe(4)
   })
 })

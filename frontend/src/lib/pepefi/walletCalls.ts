@@ -55,8 +55,10 @@ export function isUserRejection(e: unknown): boolean {
   return (e as { code?: unknown } | null)?.code === 'ACTION_REJECTED' || walletError(e).code === 4001
 }
 
-/** The wallet does not implement the method (as opposed to the user rejecting it). */
+/** The wallet does not implement the method (as opposed to the user rejecting it or refusing the version). */
 export function isUnsupportedMethod(e: unknown): boolean {
+  // MetaMask's "Version not supported: Got 2.0.0, expected …" would match "not supported" below.
+  if (isVersionMismatch(e)) return false
   // ethers raises UNSUPPORTED_OPERATION itself too ("provider destroyed; cancelled request"); only the
   // wallet's own refusal carries the wallet's error in `info.error`.
   const err = e as { code?: unknown; info?: { error?: unknown } } | null
@@ -67,14 +69,15 @@ export function isUnsupportedMethod(e: unknown): boolean {
 }
 
 /**
- * The wallet refused the request's EIP-5792 version (an older wallet that only speaks 1.0): invalid
- * params (-32602) naming wallet_sendCalls or a version. Anything looser (an internal error or an SDK
- * TypeError that happens to say "version") would resend and open a second wallet popup.
+ * The wallet refused the request's EIP-5792 version (an older wallet that only speaks 1.0): an
+ * invalid-input (-32000, MetaMask's validateSendCallsVersion: "Version not supported: Got …, expected …")
+ * or invalid-params (-32602) error naming wallet_sendCalls or a version. Anything looser (an internal
+ * error or an SDK TypeError that happens to say "version") would resend and open a second wallet popup.
  */
 export function isVersionMismatch(e: unknown): boolean {
   if (isUserRejection(e)) return false
   const { code, message } = walletError(e)
-  return code === -32602 && /wallet_sendCalls|2\.0\.0|version/i.test(message ?? '')
+  return (code === -32000 || code === -32602) && /wallet_sendCalls|2\.0\.0|version/i.test(message ?? '')
 }
 
 /**
