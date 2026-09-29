@@ -6,6 +6,8 @@ Entered in the Colosseum Crypto World's Fair (Base track). Mandate Layer started
 
 ![Agent Mode: the contract rejects an over-cap order from the agent, live on Base Sepolia](docs/img/agent-mode.png)
 
+**Videos:** [presentation, 2:37](https://youtu.be/GQSsAXWd1_k) · [product demo, 2:38](https://youtu.be/q5XAdTDEE6U) (narration is a synthetic voice).
+
 ## See it in 3 minutes
 
 1. Open **https://zuemen.github.io/mandate-layer/agent-mode**; no wallet is needed. It shows x402 payments, session caps and agent actions, read straight from Base Sepolia. The **Try it** button simulates the session's agent placing an over-cap or off-list order, and shows the contract's own revert.

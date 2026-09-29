@@ -6,6 +6,8 @@ Colosseum Crypto World's Fair · Base track · repo `zuemen/mandate-layer` · al
 
 **Live, no wallet needed:** https://zuemen.github.io/mandate-layer/agent-mode
 
+**Videos:** [presentation, 2:37](https://youtu.be/GQSsAXWd1_k) · [product demo, 2:38](https://youtu.be/q5XAdTDEE6U) (narration is a synthetic voice).
+
 **Development history:** Mandate Layer started on 2026-05-05 as our NCCU capstone project, then called PepeLab, before this contest. Section 12 discloses the prior work and lists what we built during the contest (Sep 14 – Oct 12, 2026).
 
 ---
