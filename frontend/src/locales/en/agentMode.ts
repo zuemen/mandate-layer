@@ -69,6 +69,7 @@ export const agentMode: Catalog['agentMode'] = {
     title: 'Base Account + Spend Permission (recorded run)',
     inApp: 'Steps 3 and 4 are one button in the app, for your own Base Account:',
     inAppLink: 'Agent Sessions, Fund the agent from a Base Account',
+    inAppNoWallet: 'connect a wallet, then open Agent Sessions and use Fund the agent from a Base Account.',
     caption:
       'A Base Account (Coinbase Smart Wallet) funds the agent through a Base Spend Permission: at most {allowance} mUSDC per day can leave the wallet, and only into its own margin. The session then bounds what the agent does with it. Latest run of agent/examples/spend-permission-demo.ts ({at}).',
   },

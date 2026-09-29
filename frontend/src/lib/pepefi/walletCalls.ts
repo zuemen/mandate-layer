@@ -57,16 +57,24 @@ export function isUserRejection(e: unknown): boolean {
 
 /** The wallet does not implement the method (as opposed to the user rejecting it). */
 export function isUnsupportedMethod(e: unknown): boolean {
-  if ((e as { code?: unknown } | null)?.code === 'UNSUPPORTED_OPERATION') return true
+  // ethers raises UNSUPPORTED_OPERATION itself too ("provider destroyed; cancelled request"); only the
+  // wallet's own refusal carries the wallet's error in `info.error`.
+  const err = e as { code?: unknown; info?: { error?: unknown } } | null
+  if (err?.code === 'UNSUPPORTED_OPERATION' && err.info?.error) return true
   const { code, message } = walletError(e)
   if (code === 4200 || code === -32601) return true
   return /does not exist|not supported|unsupported method|is not available|method not found/i.test(message ?? '')
 }
 
-/** The wallet refused the request's EIP-5792 version (an older wallet that only speaks 1.0). */
+/**
+ * The wallet refused the request's EIP-5792 version (an older wallet that only speaks 1.0): invalid
+ * params (-32602) naming wallet_sendCalls or a version. Anything looser (an internal error or an SDK
+ * TypeError that happens to say "version") would resend and open a second wallet popup.
+ */
 export function isVersionMismatch(e: unknown): boolean {
   if (isUserRejection(e)) return false
-  return /version/i.test(walletError(e).message ?? '')
+  const { code, message } = walletError(e)
+  return code === -32602 && /wallet_sendCalls|2\.0\.0|version/i.test(message ?? '')
 }
 
 /**
@@ -79,4 +87,50 @@ export function supportsAtomicBatch(caps: unknown, chainId: number): boolean {
   if (!c) return false
   if (c.atomic?.status) return c.atomic.status === 'supported'
   return c.atomicBatch?.supported === true
+}
+
+/** The part of an EIP-1193 provider (ethers' BrowserProvider) that sendCallsAndWait needs. */
+export interface CallsProvider { send(method: string, params: unknown[]): Promise<unknown> }
+
+export type SendOutcome =
+  | { kind: 'confirmed'; txHash?: string }
+  | { kind: 'failed'; txHash?: string; reason: string }
+  | { kind: 'timeout' }
+  | { kind: 'unsupported' }
+
+/**
+ * Send `calls` as one atomic EIP-5792 batch (2.0.0, then 1.0 if the wallet refuses the version) and
+ * poll wallet_getCallsStatus until it settles or `timeoutMs` passes. A user rejection and any other
+ * wallet error are thrown to the caller.
+ */
+export async function sendCallsAndWait(
+  provider: CallsProvider,
+  calls: readonly WalletCall[],
+  from: string,
+  chainId: number,
+  { timeoutMs = 90_000, intervalMs = 2_000, sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms)) } = {},
+): Promise<SendOutcome> {
+  let res: unknown
+  try {
+    res = await provider.send('wallet_sendCalls', sendCallsParams(calls, from, chainId))
+  } catch (e) {
+    if (isUserRejection(e)) throw e
+    if (isUnsupportedMethod(e)) return { kind: 'unsupported' }
+    if (!isVersionMismatch(e)) throw e
+    res = await provider.send('wallet_sendCalls', sendCallsParams(calls, from, chainId, '1.0'))
+  }
+  const id = typeof res === 'string' ? res : (res as { id: string }).id
+
+  for (let waited = 0; waited < timeoutMs; waited += intervalMs) {
+    const raw = await provider.send('wallet_getCallsStatus', [id])
+    const status = parseCallsStatus(raw)
+    if (status.state === 'confirmed') return { kind: 'confirmed', txHash: status.txHash }
+    if (status.state === 'failed') {
+      // With a receipt the batch reverted on chain; without one the wallet never got it on chain.
+      const reason = status.txHash ? 'reverted' : `wallet status ${String((raw as { status?: unknown })?.status)}`
+      return { kind: 'failed', txHash: status.txHash, reason }
+    }
+    await sleep(intervalMs)
+  }
+  return { kind: 'timeout' }
 }

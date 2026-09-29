@@ -8,6 +8,7 @@ import {
   MAX_UINT48,
   SPEND_PERMISSION_FUNDER,
   SPEND_PERMISSION_MANAGER,
+  addSpmOwnerCall,
   buildSetupCalls,
   permissionJsonOf,
   type SetupParams,
@@ -63,6 +64,15 @@ describe('buildSetupCalls', () => {
     expect(() => buildSetupCalls({ ...params, allowance: 0n })).toThrow(/allowance/)
     expect(() => buildSetupCalls({ ...params, expiry: params.start })).toThrow(/expiry/)
     expect(() => buildSetupCalls({ ...params, assets: [] })).toThrow(/asset/)
+  })
+})
+
+describe('addSpmOwnerCall', () => {
+  it('補救按鈕送的單一呼叫：帳戶自己呼叫 addOwnerAddress(SPM)，與批次裡加 owner 的那一筆相同', () => {
+    const call = addSpmOwnerCall(recorded.account.toLowerCase())
+    expect(call).toEqual(buildSetupCalls({ ...params, addSpmOwner: true })[0])
+    expect(call.to).toBe(ethers.getAddress(recorded.account))
+    expect(call.value).toBe(0n)
   })
 })
 

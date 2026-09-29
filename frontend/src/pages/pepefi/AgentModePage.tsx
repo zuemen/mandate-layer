@@ -30,6 +30,7 @@ import TableContainer from '@mui/material/TableContainer'
 import CircularProgress from '@mui/material/CircularProgress'
 
 import { t, interpolate } from 'src/locales'
+import { usePepefiWallet } from 'src/layouts/pepefi'
 import { getAddresses, ASSET_IDS, PRIMARY_CHAIN_ID } from 'src/contracts/addresses'
 import { classifySimulationFailure } from 'src/lib/pepefi/simulationOutcome'
 import { plainStep } from 'src/lib/pepefi/recordedRun'
@@ -84,6 +85,8 @@ const txLink = (h: string) => (
 )
 
 export default function AgentModePage() {
+  // /sessions is not public: a visitor without a wallet (a judge) would be sent back to /.
+  const walletConnected = usePepefiWallet()?.isConnected ?? false
   const provider = useMemo(() => readProvider(READ_RPC, CHAIN_ID), [])
   const addrs = getAddresses(CHAIN_ID)
   const managerAddr = getSessionManagerAddress(CHAIN_ID)
@@ -376,7 +379,9 @@ export default function AgentModePage() {
             <RecordedSteps steps={spendPermissionRun.steps} />
             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
               {t.agentMode.spendRun.inApp}{' '}
-              <Link component={RouterLink} to="/sessions">{t.agentMode.spendRun.inAppLink} →</Link>
+              {walletConnected
+                ? <Link component={RouterLink} to="/sessions">{t.agentMode.spendRun.inAppLink} →</Link>
+                : t.agentMode.spendRun.inAppNoWallet}
             </Typography>
           </Card>
         )}

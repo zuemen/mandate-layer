@@ -68,6 +68,7 @@ export const agentMode = {
     title: 'Base Account＋Spend Permission（錄好的示範）',
     inApp: '第 3、4 步在 App 裡是一顆按鈕，用你自己的 Base Account：',
     inAppLink: 'Agent Sessions 的「用 Base Account 替 agent 儲值」',
+    inAppNoWallet: '連上錢包後，到 Agent Sessions 的「用 Base Account 替 agent 儲值」。',
     caption:
       'Base Account（Coinbase 智慧錢包）透過 Base Spend Permission 替 agent 儲值：每天最多 {allowance} mUSDC 能離開錢包，而且只能進它自己的保證金；session 再限制 agent 怎麼用這些錢。agent/examples/spend-permission-demo.ts 最近一次執行（{at}）。',
   },

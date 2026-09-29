@@ -57,6 +57,14 @@ export function permissionJsonOf(p: SetupParams) {
   }
 }
 
+/**
+ * Make SpendPermissionManager an owner of the account, which `spend` needs. Coinbase Smart Wallet's
+ * onlyOwner accepts calls from the wallet itself. Reverts (AlreadyOwner) if it is one already.
+ */
+export function addSpmOwnerCall(account: string): Call {
+  return { to: ethers.getAddress(account), value: 0n, data: WALLET.encodeFunctionData('addOwnerAddress', [SPEND_PERMISSION_MANAGER]) }
+}
+
 export function buildSetupCalls(p: SetupParams): Call[] {
   if (p.allowance <= 0n) throw new Error('allowance must be positive')
   if (p.expiry <= p.start) throw new Error('expiry must be after the start')
@@ -75,9 +83,6 @@ export function buildSetupCalls(p: SetupParams): Call[] {
       ]),
     },
   ]
-  if (p.addSpmOwner) {
-    // Coinbase Smart Wallet's onlyOwner accepts calls from the wallet itself.
-    calls.unshift({ to: perm.account, value: 0n, data: WALLET.encodeFunctionData('addOwnerAddress', [SPEND_PERMISSION_MANAGER]) })
-  }
+  if (p.addSpmOwner) calls.unshift(addSpmOwnerCall(perm.account))
   return calls
 }
