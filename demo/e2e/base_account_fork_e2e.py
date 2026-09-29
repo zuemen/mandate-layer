@@ -15,7 +15,12 @@ Scenarios:
   fresh     a new Coinbase Smart Wallet whose only owner is the throwaway key: the page must add
             SpendPermissionManager as an owner inside the same batch.
   reject    like existing, but the wallet declines wallet_sendCalls (EIP-1193 4001): the page must say
-            so, must not ask the wallet a second time, and nothing may reach the chain.
+            so, must not ask the wallet a second time, and the button must work again.
+  undeployed  the worst case for an account that does not exist yet: the wallet reports atomic batches,
+            and on wallet_sendCalls it first creates the account through the factory with the throwaway
+            key as its only owner (no SpendPermissionManager), then runs the batch. The page must send
+            the 3-call batch (no addOwnerAddress), notice afterwards that SpendPermissionManager is not an
+            owner, and fix it with a single-call wallet_sendCalls from its remedy button.
 
 After the page reports "Done", the script checks the fork state (session, top-up agent, SpendPermissionManager
 approval of the exact JSON the page shows), has the agent top up margin with that permission, signs the
@@ -24,7 +29,7 @@ session's credential from the list, and verifies it with ERC-1271 and with the a
 setup:  anvil --fork-url https://base-sepolia-rpc.publicnode.com --chain-id 84532 --block-time 1
         pip install playwright eth-account && python -m playwright install chromium
         (cd agent && npm ci)
-usage:  python demo/e2e/base_account_fork_e2e.py <existing|fresh|reject> [site]
+usage:  python demo/e2e/base_account_fork_e2e.py <existing|fresh|reject|undeployed> [site]
 """
 import json
 import subprocess
@@ -131,7 +136,36 @@ rpc('anvil_setBalance', [owner.address, hex(10**18)])
 wallet_state = {'account': None, 'owner_index': None}
 
 
+def perm_tuple_of(permission: dict) -> tuple:
+    return (to_checksum_address(permission['account']), to_checksum_address(permission['spender']), to_checksum_address(permission['token']),
+            int(permission['allowance']), permission['period'], permission['start'], permission['end'], int(permission['salt']), b'')
+
+
+def fund(account: str, amount: int) -> None:
+    """Give the account at least `amount` mUSDC (faucet to the throwaway key, then transfer)."""
+    bal = abi_decode(['uint256'], eth_call(USDC, calldata('balanceOf(address)', ['address'], [account])))[0]
+    if bal < amount:
+        send_as(owner.address, USDC, calldata('faucet()', [], []))
+        send_as(owner.address, USDC, calldata('transfer(address,uint256)', ['address', 'uint256'], [account, amount - bal]))
+
+
+def top_up(perm_tuple: tuple, amount: int) -> dict:
+    return send_as(AGENT, FUNDER, calldata(f'topUp({PERMISSION_T},uint160)', [PERMISSION_T, 'uint160'], [perm_tuple, amount]))
+
+
+def is_owner(account: str, who: str) -> bool:
+    return abi_decode(['bool'], eth_call(account, calldata('isOwnerAddress(address)', ['address'], [who])))[0]
+
+
 def setup_account() -> None:
+    if SCENARIO == 'undeployed':
+        # Counterfactual address only: the mock wallet creates it on the first wallet_sendCalls.
+        owners = [abi_encode(['address'], [owner.address])]
+        nonce = int.from_bytes(secrets.token_bytes(8), 'big')
+        account = to_checksum_address(abi_decode(['address'], eth_call(FACTORY, calldata('getAddress(bytes[],uint256)', ['bytes[]', 'uint256'], [owners, nonce])))[0])
+        check('fork setup: the account does not exist yet', rpc('eth_getCode', [account, 'latest']) == '0x', account)
+        wallet_state.update(account=account, owner_index=0, deploy=(owners, nonce))
+        return
     if SCENARIO in ('existing', 'reject'):
         account = EXISTING_ACCOUNT
         idx = abi_decode(['uint256'], eth_call(account, calldata('nextOwnerIndex()', [], [])))[0]
@@ -145,9 +179,8 @@ def setup_account() -> None:
         account = to_checksum_address(abi_decode(['address'], eth_call(FACTORY, calldata('getAddress(bytes[],uint256)', ['bytes[]', 'uint256'], [owners, nonce])))[0])
         send_as(owner.address, FACTORY, calldata('createAccount(bytes[],uint256)', ['bytes[]', 'uint256'], [owners, nonce]))
         idx = 0
-    ok = abi_decode(['bool'], eth_call(account, calldata('isOwnerAddress(address)', ['address'], [owner.address])))[0]
-    check('fork setup: throwaway key is an owner of the account', ok, account)
-    spm_owner = abi_decode(['bool'], eth_call(account, calldata('isOwnerAddress(address)', ['address'], [SPM])))[0]
+    check('fork setup: throwaway key is an owner of the account', is_owner(account, owner.address), account)
+    spm_owner = is_owner(account, SPM)
     check('fork setup: SpendPermissionManager owner state matches scenario', spm_owner == (SCENARIO != 'fresh'), f'isOwner(SPM)={spm_owner}')
     wallet_state['account'] = account
     wallet_state['owner_index'] = idx
@@ -155,6 +188,10 @@ def setup_account() -> None:
 
 def send_batch(calls: list[dict]) -> str:
     account = wallet_state['account']
+    if wallet_state.get('deploy') and rpc('eth_getCode', [account, 'latest']) == '0x':
+        # What a wallet does for a new account, minus SpendPermissionManager in its owners (the worst case).
+        owners, nonce = wallet_state['deploy']
+        send_as(owner.address, FACTORY, calldata('createAccount(bytes[],uint256)', ['bytes[]', 'uint256'], [owners, nonce]))
     batch = [(to_checksum_address(c['to']), int(c.get('value', '0x0'), 16), bytes.fromhex(c['data'][2:])) for c in calls]
     data = calldata('executeBatch((address,uint256,bytes)[])', ['(address,uint256,bytes)[]'], [batch])
     tx = {'from': owner.address, 'to': account, 'data': data, 'value': '0x0'}
@@ -199,7 +236,7 @@ def handle(method: str, params_json: str) -> str:
             return json.dumps({'result': {hex(CHAIN_ID): {'atomic': {'status': 'supported'}}}})
         if method == 'wallet_sendCalls':
             req = params[0]
-            wallet_state['send_request'] = req
+            wallet_state.setdefault('send_requests', []).append(req)
             wallet_state['send_count'] = wallet_state.get('send_count', 0) + 1
             if SCENARIO == 'reject':
                 return json.dumps({'error': {'code': 4001, 'message': 'User rejected the request.'}})
@@ -239,6 +276,22 @@ INIT = """
   };
 })();
 """
+
+
+def tested_build(page) -> dict:
+    """Which frontend was tested: the page's JS bundle and this checkout's commit."""
+    scripts = page.evaluate("[...document.querySelectorAll('script[src]')].map(s => s.src)")
+    head = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=AGENT_DIR.parent, capture_output=True, text=True).stdout.strip()
+    return {'site_scripts': scripts, 'repo_head': head}
+
+
+def write_result(**extra) -> int:
+    (OUT / 'result.json').write_text(json.dumps({'scenario': SCENARIO, 'site': SITE, **extra,
+                                                 'checks': [{'name': n, 'ok': o, 'detail': d} for n, o, d in checks]}, indent=2))
+    failed_n = sum(1 for _, o, _ in checks if not o)
+    session = f", session #{extra['session']}" if 'session' in extra else ''
+    print(f"\n{len(checks) - failed_n}/{len(checks)} checks passed — scenario {SCENARIO}, account {extra.get('account')}{session}")
+    return 1 if failed_n else 0
 
 
 def main() -> int:
@@ -281,14 +334,19 @@ def main() -> int:
         status = card.locator('.MuiAlert-root').first
         page.wait_for_function("el => !/Checking/i.test(el.textContent)", arg=status.element_handle(), timeout=30_000)
         status_text = status.inner_text()
-        expected = ('Coinbase Smart Wallet detected. The batch also adds SpendPermissionManager' if SCENARIO == 'fresh'
-                    else 'Coinbase Smart Wallet detected.')
+        expected = {'fresh': 'Coinbase Smart Wallet detected. The batch also adds SpendPermissionManager',
+                    'undeployed': 'This wallet can batch calls; the Base Account will be created by this batch.'}.get(SCENARIO, 'Coinbase Smart Wallet detected.')
         check('card recognises the account', status_text.strip().startswith(expected) and (SCENARIO == 'fresh' or 'also adds' not in status_text), status_text[:140])
+        build = tested_build(page)
         page.screenshot(path=str(OUT / '1_connected.png'), full_page=True)
 
         page.get_by_placeholder('0x… or click Generate agent key on the right').fill(AGENT)
         cta = card.get_by_role('button', name='Set up with one Base Account batch')
         check('CTA enabled once the agent is filled', cta.is_enabled(), cta.inner_text())
+        # From here on the status must never go back to "Checking…": re-reads keep the last result.
+        card.evaluate("""c => { window.__checkingSeen = false; new MutationObserver(() => {
+            if (/Checking/i.test(c.querySelector('.MuiAlert-root')?.textContent ?? '')) window.__checkingSeen = true
+        }).observe(c, { subtree: true, childList: true, characterData: true }) }""")
         cta.click()
         done = card.locator('.MuiAlert-root', has_text='Done')
         page.wait_for_function(
@@ -297,23 +355,63 @@ def main() -> int:
             page.wait_for_timeout(3_000)  # a second wallet request, if the page made one, would arrive now
             declined = card.locator('.MuiAlert-root', has_text='You declined the request in your wallet. Nothing was sent.')
             check('page reports the rejection', declined.count() == 1, ' '.join(card.inner_text().split())[:200])
+            # The mock refuses before sending anything, so the chain cannot tell us more; what matters is
+            # that the page asked once and left the button usable.
             check('wallet asked exactly once (no retry after a rejection)', wallet_state.get('send_count') == 1, f"wallet_sendCalls x{wallet_state.get('send_count')}")
-            after_next = abi_decode(['uint256'], eth_call(ASM, calldata('nextSessionId()', [], [])))[0]
-            check('no session opened', after_next == before_next, f'nextSessionId {before_next} → {after_next}')
             check('CTA usable again', cta.is_enabled(), cta.inner_text())
+            check('status never flashed "Checking…" after the first read', not page.evaluate('window.__checkingSeen'))
             page.screenshot(path=str(OUT / '2_rejected.png'), full_page=True)
             browser.close()
-            (OUT / 'result.json').write_text(json.dumps({'scenario': SCENARIO, 'site': SITE, 'account': account,
-                                                         'checks': [{'name': n, 'ok': o, 'detail': d} for n, o, d in checks]}, indent=2))
-            failed_n = sum(1 for _, o, _ in checks if not o)
-            print(f'\n{len(checks) - failed_n}/{len(checks)} checks passed — scenario {SCENARIO}, account {account}')
-            return 1 if failed_n else 0
+            return write_result(account=account, build=build)
         ok_done = done.count() > 0
         check('batch confirmed in the UI (Done alert)', ok_done, (done.first.inner_text() if ok_done else card.inner_text())[:300])
         page.screenshot(path=str(OUT / '2_done.png'), full_page=True)
         if not ok_done:
             browser.close()
-            return 1
+            return write_result(account=account, build=build) or 1
+
+        if SCENARIO == 'undeployed':
+            # The wallet created the account without SpendPermissionManager: the batch itself succeeded,
+            # but the agent could not spend until the page's remedy adds it.
+            check('SpendPermissionManager is not an owner after the batch (worst case reproduced)', not is_owner(account, SPM))
+            # Why the remedy matters: with money in the account, the agent's top-up still reverts.
+            fund(account, 5 * 10**18)
+            # Simulated from the agent (eth_call), so the answer is the contract's own revert.
+            sim = rpc_raw('eth_call', [{'from': AGENT, 'to': FUNDER, 'data': calldata(f'topUp({PERMISSION_T},uint160)', [PERMISSION_T, 'uint160'],
+                                        [perm_tuple_of(json.loads(card.locator('pre').inner_text())), 5 * 10**18])}, 'latest'])
+            sim_err = sim.get('error') or {}
+            unauthorized = '0x' + sel('Unauthorized()').hex()  # the account refusing SpendPermissionManager's execute
+            check("before the remedy, the agent's topUp reverts with the account's Unauthorized()",
+                  str(sim_err.get('data', '')).lower().startswith(unauthorized), f"{sim_err.get('message', 'no error')} data={str(sim_err.get('data', ''))[:74]}")
+            fix = card.get_by_role('button', name='Add SpendPermissionManager as owner')
+            try:
+                fix.wait_for(timeout=30_000)
+            except Exception:
+                page.screenshot(path=str(OUT / '2_no_remedy.png'), full_page=True)
+            warning = card.locator('.MuiAlert-root', has_text='without SpendPermissionManager as an owner')
+            check('remedy button appears after the batch', fix.count() == 1,
+                  ' '.join((warning.first.inner_text() if warning.count() else card.inner_text()).split())[:200])
+            card.scroll_into_view_if_needed()
+            card.screenshot(path=str(OUT / 'card_remedy.png'))
+            if fix.count() != 1:
+                browser.close()
+                return write_result(account=account, build=build)
+            sessions_before_fix = abi_decode(['uint256'], eth_call(ASM, calldata('nextSessionId()', [], [])))[0]
+            fix.click()
+            page.wait_for_function(
+                "c => /is now an owner of this account|The batch failed|not confirmed after|You declined/.test(c.textContent)", arg=card.element_handle(), timeout=120_000)
+            fixed = card.locator('.MuiAlert-root', has_text='SpendPermissionManager is now an owner of this account.')
+            check('page reports the remedy confirmed', fixed.count() == 1,
+                  ' '.join((fixed.first.inner_text() if fixed.count() else card.inner_text()).split())[:200])
+            fix_req = wallet_state['send_requests'][-1]
+            one = fix_req['calls'][0] if len(fix_req['calls']) == 1 else {}
+            want = calldata('addOwnerAddress(address)', ['address'], [SPM])
+            check('remedy is a single call: the account calls addOwnerAddress(SpendPermissionManager)',
+                  wallet_state.get('send_count') == 2 and to_checksum_address(one.get('to', '0x' + '0' * 40)) == account and one.get('data', '').lower() == want.lower(),
+                  f"wallet_sendCalls x{wallet_state.get('send_count')}, {len(fix_req['calls'])} call(s)")
+            after_fix = abi_decode(['uint256'], eth_call(ASM, calldata('nextSessionId()', [], [])))[0]
+            check('remedy opens no new session', after_fix == sessions_before_fix, f'nextSessionId {sessions_before_fix} → {after_fix}')
+            page.screenshot(path=str(OUT / '2b_remedy_done.png'), full_page=True)
 
         # The card reads the account again after a confirmed batch (SpendPermissionManager is an owner now).
         after = ''
@@ -323,11 +421,15 @@ def main() -> int:
                 break
             page.wait_for_timeout(500)
         check('card re-reads the account after the batch', after == 'Coinbase Smart Wallet detected.', after[:120])
+        check('status never flashed "Checking…" after the first read', not page.evaluate('window.__checkingSeen'))
+        if SCENARIO == 'undeployed':
+            check('remedy button gone once SpendPermissionManager is an owner',
+                  card.get_by_role('button', name='Add SpendPermissionManager as owner').count() == 0)
         permission = json.loads(card.locator('pre').inner_text())
         card.scroll_into_view_if_needed()
         card.screenshot(path=str(OUT / 'card_done.png'))
         (OUT / 'permission.json').write_text(json.dumps(permission, indent=2))
-        req = wallet_state['send_request']
+        req = wallet_state['send_requests'][0]
         check('wallet_sendCalls used EIP-5792 2.0.0 with atomicRequired', req.get('version') == '2.0.0' and req.get('atomicRequired') is True, f"{len(req['calls'])} calls")
         check('batch length matches scenario', len(req['calls']) == (4 if SCENARIO == 'fresh' else 3), str([c['to'] for c in req['calls']]))
 
@@ -341,21 +443,16 @@ def main() -> int:
         check('session.agent == the agent', to_checksum_address(s[1]) == AGENT, s[1])
         top_agent = abi_decode(['address'], eth_call(FUNDER, calldata('topUpAgent(address)', ['address'], [account])))[0]
         check('funder.topUpAgent(account) == agent', to_checksum_address(top_agent) == AGENT, top_agent)
-        perm_tuple = (to_checksum_address(permission['account']), to_checksum_address(permission['spender']), to_checksum_address(permission['token']),
-                      int(permission['allowance']), permission['period'], permission['start'], permission['end'], int(permission['salt']), b'')
+        perm_tuple = perm_tuple_of(permission)
         approved = abi_decode(['bool'], eth_call(SPM, calldata(f'isApproved({PERMISSION_T})', [PERMISSION_T], [perm_tuple])))[0]
         check('SPM.isApproved(the JSON the page shows) == true', approved, f"allowance {int(permission['allowance']) / 1e18} mUSDC / {permission['period']}s")
-        spm_owner = abi_decode(['bool'], eth_call(account, calldata('isOwnerAddress(address)', ['address'], [SPM])))[0]
-        check('SpendPermissionManager is an owner after the batch', spm_owner)
+        check('SpendPermissionManager is an owner after the batch' + (' and the remedy' if SCENARIO == 'undeployed' else ''), is_owner(account, SPM))
 
         # ── the agent tops up margin with that permission (what top_up_margin does) ──
         amount = 5 * 10**18
-        bal = abi_decode(['uint256'], eth_call(USDC, calldata('balanceOf(address)', ['address'], [account])))[0]
-        if bal < amount:
-            send_as(owner.address, USDC, calldata('faucet()', [], []))
-            send_as(owner.address, USDC, calldata('transfer(address,uint256)', ['address', 'uint256'], [account, amount]))
+        fund(account, amount)
         margin0 = abi_decode(['uint256'], eth_call(EXCHANGE, calldata('freeMargin(address)', ['address'], [account])))[0]
-        r = send_as(AGENT, FUNDER, calldata(f'topUp({PERMISSION_T},uint160)', [PERMISSION_T, 'uint160'], [perm_tuple, amount]))
+        r = top_up(perm_tuple, amount)
         margin1 = abi_decode(['uint256'], eth_call(EXCHANGE, calldata('freeMargin(address)', ['address'], [account])))[0]
         check('agent topUp with that permission moves 5 mUSDC into margin', margin1 - margin0 == amount, f'freeMargin +{(margin1 - margin0) / 1e18} (tx {r["transactionHash"][:10]}…)')
 
@@ -390,11 +487,7 @@ def main() -> int:
                            cwd=AGENT_DIR, capture_output=True, text=True, timeout=120)
     check("agent's verifyAuthorizationVCWithProvider accepts the credential", agent.returncode == 0, (agent.stdout or agent.stderr).strip()[:200])
     (OUT / 'rpc_methods.json').write_text(json.dumps(sorted(set(rpc_log))))
-    (OUT / 'result.json').write_text(json.dumps({'scenario': SCENARIO, 'site': SITE, 'account': account, 'session': sid,
-                                                 'checks': [{'name': n, 'ok': o, 'detail': d} for n, o, d in checks]}, indent=2))
-    failed_n = sum(1 for _, o, _ in checks if not o)
-    print(f'\n{len(checks) - failed_n}/{len(checks)} checks passed — scenario {SCENARIO}, account {account}, session #{sid}')
-    return 1 if failed_n else 0
+    return write_result(account=account, session=sid, build=build)
 
 
 if __name__ == '__main__':
