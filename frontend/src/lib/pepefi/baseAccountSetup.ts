@@ -102,18 +102,24 @@ export async function spmIsOwner(reader: AccountReader, account: string): Promis
   return WALLET.decodeFunctionResult('isOwnerAddress', raw)[0] as boolean
 }
 
-export type SpmOwner = 'yes' | 'no' | 'notCoinbase' | 'unknown'
+/** What readSpmOwner can tell. 'empty': the account has code but answered nothing, every time. */
+export type OwnerRead = 'yes' | 'no' | 'notCoinbase' | 'empty' | 'unknown'
 
 /**
  * How an isOwnerAddress read failed. ethers turns every JSON-RPC error on eth_call into CALL_EXCEPTION;
- * only a revert (the node says so, usually with revert data) is the contract's answer. BAD_DATA is an
- * answer that is not a bool: junk means another contract, empty ('0x') can also be a node that does not
- * have the account yet.
+ * only a revert (the node says so, anywhere in the error a wallet may have wrapped it in, usually with
+ * revert data) is the contract's answer. BAD_DATA is an answer that is not a bool: junk means another
+ * contract, empty ('0x') can also be a node that does not have the account yet.
  */
 function readFailure(e: unknown): 'contract' | 'empty' | 'rpc' {
   if (isError(e, 'CALL_EXCEPTION')) {
-    const info = e.info as { error?: { message?: unknown } } | undefined
-    return e.data != null || /revert/i.test(String(info?.error?.message ?? '')) ? 'contract' : 'rpc'
+    let said = ''
+    try {
+      said = JSON.stringify((e.info as { error?: unknown } | undefined)?.error ?? '')
+    } catch {
+      // not serialisable: no revert text to find
+    }
+    return e.data != null || /revert/i.test(said) ? 'contract' : 'rpc'
   }
   if (isError(e, 'BAD_DATA')) return e.value === '0x' ? 'empty' : 'contract'
   return 'rpc'
@@ -122,7 +128,9 @@ function readFailure(e: unknown): 'contract' | 'empty' | 'rpc' {
 /**
  * Is SpendPermissionManager an owner of `account`, as a definite answer where possible?
  *  - yes / no: a Coinbase Smart Wallet answered.
- *  - notCoinbase: the account has code that reverts, returns junk, or keeps returning nothing for isOwnerAddress.
+ *  - notCoinbase: the account has code that reverts or returns junk for isOwnerAddress.
+ *  - empty: it has code but kept answering nothing: a contract with a silent fallback (a Safe, for one),
+ *    or a node that does not have the account yet behind one that does. Not a verdict.
  *  - unknown: no code seen yet, or the RPC kept failing.
  * The wallet's receipt can arrive before the node we read from has the block, so a missing account, an
  * empty answer and an RPC failure are retried.
@@ -131,7 +139,7 @@ export async function readSpmOwner(
   reader: AccountReader,
   account: string,
   { tries = 5, sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms)) } = {},
-): Promise<SpmOwner> {
+): Promise<OwnerRead> {
   let last: 'noCode' | 'empty' | 'rpc' = 'rpc'
   for (let i = 0; i < tries; i++) {
     try {
@@ -151,6 +159,5 @@ export async function readSpmOwner(
     }
     if (i < tries - 1) await sleep(2_000)
   }
-  // Code that answers nothing, every time: a contract with a silent fallback (a Safe, for one).
-  return last === 'empty' ? 'notCoinbase' : 'unknown'
+  return last === 'empty' ? 'empty' : 'unknown'
 }

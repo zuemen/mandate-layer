@@ -435,15 +435,17 @@ def main() -> int:
             shown = card.locator('pre').inner_text()
             open_sessions()  # a reload (reconnects the mock wallet if the page does not restore it)
             card.wait_for(timeout=30_000)
-            page.wait_for_function("c => { const a = c.querySelector('.MuiAlert-root'); return a && !/Checking/i.test(a.textContent) }",
-                                   arg=card.element_handle(), timeout=30_000)
+            # The restored fix shows at once; wait for the balance line, which only a completed read of the
+            # account renders, so the checks below hold after the page has read the account again (and the
+            # disabled button is down to the pending fix, not to a read in progress).
             try:
-                fix.wait_for(timeout=15_000)
+                card.get_by_text('mUSDC in this account').wait_for(timeout=30_000)
             except Exception:
                 pass
             kept = card.locator('pre')
-            survived = fix.count() == 1 and kept.count() == 1 and kept.inner_text() == shown and not cta.is_enabled()
-            check('after a reload the fix is still offered, with the same Spend Permission JSON', survived,
+            survived = (card.get_by_text('mUSDC in this account').count() == 1 and fix.count() == 1 and kept.count() == 1
+                        and kept.inner_text() == shown and not cta.is_enabled() and status.inner_text().strip().startswith('One step left'))
+            check('after a reload and a fresh read the fix is still offered, with the same Spend Permission JSON', survived,
                   ' '.join(status.inner_text().split())[:120])
             if not survived:
                 page.screenshot(path=str(OUT / '2_after_reload.png'), full_page=True)

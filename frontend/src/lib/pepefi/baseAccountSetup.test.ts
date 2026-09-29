@@ -132,7 +132,7 @@ describe('readSpmOwner（批次建立帳戶之後，SpendPermissionManager 是�
 
 describe('readSpmOwner 經過 ethers BrowserProvider（卡片實際拿到的錯誤形狀）', () => {
   const TRUE = ethers.AbiCoder.defaultAbiCoder().encode(['bool'], [true])
-  type RpcError = { code: number; message: string; data?: string }
+  type RpcError = { code: number; message: string; data?: unknown }
   /** A mock EIP-1193 wallet: eth_getCode answers `code`; eth_call answers from `calls` in order (objects are thrown as JSON-RPC errors). */
   function wallet(code: string, calls: (string | RpcError)[]) {
     let k = 0
@@ -166,13 +166,17 @@ describe('readSpmOwner 經過 ethers BrowserProvider（卡片實際拿到的錯�
     expect(s.n).toBe(0)
     expect(await readSpmOwner(wallet('0x60', [{ code: -32000, message: 'execution reverted' }]), recorded.account, opts())).toBe('notCoinbase')
   })
+  it('錢包把 revert 包在內層（-32603 Internal JSON-RPC error，內層才是 execution reverted、沒有 revert data）→ 仍是 notCoinbase', async () => {
+    const wrapped = { code: -32603, message: 'Internal JSON-RPC error.', data: { code: -32000, message: 'execution reverted' } }
+    expect(await readSpmOwner(wallet('0x60', [wrapped]), recorded.account, opts())).toBe('notCoinbase')
+  })
   it('回傳不是 bool 的資料 → notCoinbase', async () => {
     expect(await readSpmOwner(wallet('0x60', ['0x1234']), recorded.account, opts())).toBe('notCoinbase')
   })
-  it('空回應：先當成節點落後重試；一直是空的（例如 Safe 的 fallback）→ notCoinbase', async () => {
+  it('空回應：先當成節點落後重試；一直是空的（Safe 的 fallback，或落後的節點）→ empty，不下定論', async () => {
     expect(await readSpmOwner(wallet('0x60', ['0x', TRUE]), recorded.account, opts())).toBe('yes')
     const s = opts()
-    expect(await readSpmOwner(wallet('0x60', ['0x']), recorded.account, s)).toBe('notCoinbase')
+    expect(await readSpmOwner(wallet('0x60', ['0x']), recorded.account, s)).toBe('empty')
     expect(s.n).toBe(4)
   })
   it('帳戶一直沒有 code → unknown', async () => {

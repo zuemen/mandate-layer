@@ -19,7 +19,7 @@ import { MONO } from 'src/components/pepefi/brandKit'
 import { getSessionManagerAddress } from 'src/contracts/sessionManager'
 import { ASSET_IDS, getAddresses } from 'src/contracts/addresses'
 import {
-  MAX_UINT48, addSpmOwnerCall, buildSetupCalls, permissionJsonOf, readSpmOwner, spmIsOwner, type SpmOwner,
+  MAX_UINT48, addSpmOwnerCall, buildSetupCalls, permissionJsonOf, readSpmOwner, spmIsOwner, type OwnerRead,
 } from 'src/lib/pepefi/baseAccountSetup'
 import { isUserRejection, sendCallsAndWait, supportsAtomicBatch, walletError, type SendOutcome } from 'src/lib/pepefi/walletCalls'
 
@@ -31,6 +31,10 @@ const ERC20 = new ethers.Interface(['function balanceOf(address) view returns (u
 type AccountKind = 'checking' | 'smart' | 'smartAddOwner' | 'undeployed' | 'notSmart' | 'notCoinbase' | 'readFailed'
 
 type Result = { severity: 'success' | 'error' | 'info'; text: string; txHash?: string }
+
+/** The pending owner fix. An account that only ever answered nothing is not a verdict: it stays 'unknown'. */
+type SpmOwner = Exclude<OwnerRead, 'empty'>
+const asPending = (r: OwnerRead): SpmOwner => (r === 'empty' ? 'unknown' : r)
 
 interface Props {
   agent: string
@@ -157,6 +161,7 @@ function SetupCard({ agent, perTrade, budget, maxLeverage, hours, onDone }: Prop
     ;(async () => {
       let next: AccountKind
       let code: string
+      let emptyAnswer = false
       try {
         code = await provider.getCode(address)
       } catch {
@@ -172,8 +177,11 @@ function SetupCard({ agent, perTrade, budget, maxLeverage, hours, onDone }: Prop
           return
         }
         next = owner === 'yes' ? 'smart' : owner === 'no' ? 'smartAddOwner' : 'notCoinbase'
-        // A pending fix follows any definite read (fixed from elsewhere, or 'unknown' resolved).
-        if (alive) setSpmOwner((s) => (s === 'no' || s === 'unknown' ? owner : s))
+        // Only ever answering nothing reads as "not a Coinbase Smart Wallet" (a Safe answers like this), but it
+        // can also be a node behind the one that served getCode, so Retry stays available.
+        emptyAnswer = owner === 'empty'
+        // A pending fix follows a yes/no read (fixed from elsewhere, or 'unknown' resolved), never a guess.
+        if (alive && (owner === 'yes' || owner === 'no')) setSpmOwner((s) => (s === 'no' || s === 'unknown' ? owner : s))
       } else {
         let caps: unknown = null
         try {
@@ -192,7 +200,7 @@ function SetupCard({ agent, perTrade, budget, maxLeverage, hours, onDone }: Prop
       }
       if (alive) {
         setKind(next)
-        setReadError(false)
+        setReadError(emptyAnswer)
         if (bal !== null) setBalance(bal)
       }
     })()
@@ -211,8 +219,8 @@ function SetupCard({ agent, perTrade, budget, maxLeverage, hours, onDone }: Prop
     const provider = wallet.provider
     const address = wallet.address
     if (!provider || !address) return
+    // The last Spend Permission JSON stays until a new batch confirms: it is still approved on chain.
     setResult(null)
-    setPermission(null)
     setSpmOwner(null)
     setFixResult(null)
     // The session must outlive the block it lands in (expiry > now + 60 s); checked before any wallet or RPC call.
@@ -258,7 +266,7 @@ function SetupCard({ agent, perTrade, budget, maxLeverage, hours, onDone }: Prop
       setResult({ severity: 'success', text: t.sessions.baseAccount.done, txHash: out.txHash })
       onDone()
       // A confirmed batch that included addOwnerAddress means it is an owner now; only a new account needs the check.
-      if (!deployed) setSpmOwner(await readSpmOwner(provider, address))
+      if (!deployed) setSpmOwner(asPending(await readSpmOwner(provider, address)))
       else if (addSpmOwner) await settle(() => spmIsOwner(provider, address))
     } catch (e) {
       setResult(errorResult(e))
@@ -278,7 +286,7 @@ function SetupCard({ agent, perTrade, budget, maxLeverage, hours, onDone }: Prop
     setFixResult(null)
     try {
       // An earlier attempt may have landed late; adding it twice reverts (AlreadyOwner).
-      const before = await readSpmOwner(provider, address)
+      const before = asPending(await readSpmOwner(provider, address))
       if (before !== 'no') {
         setSpmOwner(before)
         if (before === 'yes') setFixResult({ severity: 'success', text: t.sessions.baseAccount.fixDone })
@@ -306,7 +314,7 @@ function SetupCard({ agent, perTrade, budget, maxLeverage, hours, onDone }: Prop
     if (!provider || !address) return
     setBusy(true)
     try {
-      setSpmOwner(await readSpmOwner(provider, address))
+      setSpmOwner(asPending(await readSpmOwner(provider, address)))
     } finally {
       setBusy(false)
       setRecheck((n) => n + 1)
