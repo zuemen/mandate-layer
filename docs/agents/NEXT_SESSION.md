@@ -7,7 +7,7 @@ progress log at the bottom as you go.
 ## Where things stand
 
 - Branch `hackathon/colosseum-worldsfair` (the default branch). At hand-off the tree was clean and pushed, CI
-  green, and the site live at <https://zuemen.github.io/pepelab-colosseum> (GitHub Pages deploys on every push).
+  green, and the site live at <https://zuemen.github.io/mandate-layer> (GitHub Pages deploys on every push).
 - Contest: Colosseum Crypto World's Fair, Base track. Deadline **2026-10-12 23:59 PT**. Only work done during the
   contest (from 2026-09-14) is judged, and earlier work must be disclosed. See `docs/SUBMISSION.md` §12.
 - Finished on 2026-09-24:
@@ -20,6 +20,7 @@ progress log at the bottom as you go.
   - Avatars resized; docs synced.
 - On 2026-09-25 two more reviews came back: R1, a fresh review of the fixes, and R2, research. Their findings are
   the task table below.
+- **2026-09-29, evening: renamed PepeLab → Mandate Layer.** The repository is now `zuemen/mandate-layer` (site <https://zuemen.github.io/mandate-layer>); the old Pages URL returns 404. EIP-712 domain names and code identifiers keep the old name on purpose (SUBMISSION §12). The local checkout folder on the original machine is still `~/pepelab-colosseum`.
 - **2026-09-29: tasks 1–9 are done**, followed by three more fresh-review rounds on the fixes (R3–R6; the last one
   found no new bug). Commits `886ab7f`, `1cfa0f3`, `5a61953`, `830f2f5`, `94d2225` and the docs commit after them.
   Frontend 39 files, 562 tests (CI green). Fork E2E against the deployed site at `94d2225`: `existing` 22/22,
@@ -51,7 +52,7 @@ progress log at the bottom as you go.
 
 **Private keys are not in git and not on the new machine.** None of the tasks below needs them.
 
-On the previous machine, all keys are in one file: `~/.config/pepelab-colosseum/.env`. That is the user's home
+On the previous machine, all keys are in one file: `~/.config/mandate-layer/.env`. That is the user's home
 directory, outside the repo. The file holds:
 - `BASE_SEPOLIA_RPC_URL`
 - `DEPLOYER_`, `USER_`, `AGENT_`, `SELLER_`, `KEEPER_`, each as `…_ADDRESS` and `…_PRIVATE_KEY`
@@ -59,9 +60,9 @@ directory, outside the repo. The file holds:
 If a later task truly needs a key, it is always on-chain work, which also needs the user's explicit consent. In
 that case:
 1. The user copies the file by hand over a private channel. Never use chat, git, an issue or a shared doc.
-2. On the new machine the file goes to the same path, `~/.config/pepelab-colosseum/.env`. `agent/.env` also works:
+2. On the new machine the file goes to the same path, `~/.config/mandate-layer/.env`. `agent/.env` also works:
    it is gitignored, and `agent/shared/src/env.ts` loads it.
-3. Load it for one command with `set -a; . ~/.config/pepelab-colosseum/.env; set +a`.
+3. Load it for one command with `set -a; . ~/.config/mandate-layer/.env; set +a`.
 4. Never print, log or commit a value from it. If you find a plaintext key anywhere, report where it is and change
    nothing.
 
@@ -94,7 +95,7 @@ Wallets on Base Sepolia (84532). Balances were read on 2026-09-25.
 Full notes: `docs/agents/environment.md`.
 
 ```bash
-git clone https://github.com/zuemen/pepelab-colosseum && cd pepelab-colosseum
+git clone https://github.com/zuemen/mandate-layer && cd mandate-layer
 (cd frontend && yarn install --frozen-lockfile)
 (cd agent && npm ci)
 pip install playwright eth-account && python -m playwright install chromium   # E2E only
@@ -184,3 +185,4 @@ Append one line per step: `[date output] task # — status — evidence (commit,
 - [Tue Sep 29 10:45:08 2026] Fresh review R5 of `830f2f5`: R4 items fixed (N2 partly); four new, all low (two were regressions of `830f2f5`).
 - [Tue Sep 29 10:50:51 2026] R5 fixes pushed — `94d2225`; frontend 562 (CI green). E2E at `94d2225`: existing 22/22, fresh 22/22, reject 9/9, undeployed 30/30.
 - [Tue Sep 29 11:01:15 2026] Final narrow review R6 of `94d2225`: P1–P4 fixed, no new bug; one test-only gap (agent field empty after the reload) fixed in the E2E. Docs synced (E2E report, SPEND_PERMISSIONS open items, SUBMISSION §5 and §12, HACKATHON test count) | next: the user's own items (keeper top-up before about Oct 7; optionally one real Base Account run).
+- [Tue Sep 29 17:30 2026] Rename to Mandate Layer: `6ca45ff` (UI, docs, agent text, repo URL), `05ab1f7` (landing hero labels, logo on one line); repo renamed on GitHub. Fork E2E on the new site: existing 22/22, fresh 22/22, reject 9/9, undeployed 30/30 (a first undeployed run timed out while the fresh fork warmed up; the rerun passed). Keeper funded: 0.0382 ETH on Base Sepolia (bridged from Ethereum Sepolia with the user's consent, L1 tx `0x5611b2be…`).
