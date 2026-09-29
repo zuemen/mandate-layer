@@ -281,19 +281,31 @@ INIT = """
 PAGES_SITE = 'https://zuemen.github.io/pepelab-colosseum'
 
 
+def git(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(['git', *args], cwd=AGENT_DIR.parent, capture_output=True, text=True)
+
+
+def gh_api(path: str, jq: str) -> str:
+    return subprocess.run(['gh', 'api', path, '--jq', jq], capture_output=True, text=True).stdout.strip()
+
+
 def tested_build(page) -> dict:
-    """Which frontend was tested. The bundle URL is what the page ran; for the Pages site, the commit its
-    latest deployment was built from (it lags a push by a few minutes) should equal this checkout's HEAD."""
-    def git(*args: str) -> str:
-        return subprocess.run(['git', *args], cwd=AGENT_DIR.parent, capture_output=True, text=True).stdout.strip()
+    """Which frontend was tested: the bundle the page ran, this checkout, and for the Pages site the commit
+    of the latest *successful* Pages deployment. Pages only deploys pushes that touch frontend/ or its
+    workflow, so what must match is the frontend tree (as checked out, uncommitted edits included), not the commit."""
     build = {'site_scripts': page.evaluate("[...document.querySelectorAll('script[src]')].map(s => s.src)"),
-             'repo_head': git('rev-parse', 'HEAD'), 'repo_dirty': bool(git('status', '--porcelain', '--untracked-files=no'))}
+             'repo_head': git('rev-parse', 'HEAD').stdout.strip(),
+             'repo_dirty': bool(git('status', '--porcelain').stdout.strip())}
     if SITE == PAGES_SITE:
-        gh = subprocess.run(['gh', 'api', 'repos/zuemen/pepelab-colosseum/deployments?environment=github-pages&per_page=1', '--jq', '.[0].sha'],
-                            capture_output=True, text=True)
-        build['pages_deployed_sha'] = gh.stdout.strip() or None
-        if build['pages_deployed_sha'] != build['repo_head']:
-            print(f"WARN the Pages site was built from {build['pages_deployed_sha']}, not this checkout's HEAD {build['repo_head']}", flush=True)
+        deployed = None
+        for line in gh_api('repos/zuemen/pepelab-colosseum/deployments?environment=github-pages&per_page=10', '.[] | "\(.id) \(.sha)"').splitlines():
+            dep_id, sha = line.split()
+            if gh_api(f'repos/zuemen/pepelab-colosseum/deployments/{dep_id}/statuses?per_page=1', '.[0].state') == 'success':
+                deployed = sha
+                break
+        build['pages_deployed_sha'] = deployed
+        # `git diff <commit> -- paths` compares with the working tree.
+        build['pages_matches_checkout'] = bool(deployed) and git('diff', '--quiet', deployed, '--', 'frontend', '.github/workflows/pages.yml').returncode == 0
     return build
 
 
@@ -321,21 +333,35 @@ def main() -> int:
         page.on('console', lambda m: console_errors.append(m.text) if m.type == 'error' else None)
         not_found: list[str] = []
         page.on('response', lambda r: not_found.append(r.url) if r.status >= 400 else None)
-        page.goto(f'{SITE}/sessions', wait_until='domcontentloaded', timeout=60_000)
-        # The header re-renders while route chunks load, so the button can detach mid-click: retry.
-        for attempt in range(4):
-            try:
-                page.locator('button:visible', has_text='Connect Wallet').first.click(timeout=15_000)
-                page.get_by_text('Connect with MetaMask').click(timeout=10_000)
-                break
-            except Exception:
-                if attempt == 3:
-                    raise
-                page.wait_for_timeout(1_000)
-        page.get_by_text(account[:6], exact=False).first.wait_for(timeout=30_000)
-        # Connecting lands on Portfolio; go to Agent Sessions through the sidebar (keeps the in-memory connection).
-        page.get_by_role('link', name='Agent Sessions').first.click(timeout=15_000)
+        def open_sessions() -> None:
+            page.goto(f'{SITE}/sessions', wait_until='domcontentloaded', timeout=60_000)
+            connected = page.get_by_text(account[:6], exact=False).first
+            connect = page.locator('button:visible', has_text='Connect Wallet').first
+            # A reload may restore the connection silently (then the page stays on /sessions).
+            connected.or_(connect).wait_for(timeout=60_000)
+            if not connected.is_visible():
+                # The header re-renders while route chunks load, so the button can detach mid-click: retry.
+                for attempt in range(4):
+                    try:
+                        connect.click(timeout=15_000)
+                        page.get_by_text('Connect with MetaMask').click(timeout=10_000)
+                        break
+                    except Exception:
+                        if attempt == 3:
+                            raise
+                        page.wait_for_timeout(1_000)
+                connected.wait_for(timeout=30_000)
+            if not page.url.rstrip('/').endswith('/sessions'):
+                # Connecting lands on Portfolio; go to Agent Sessions through the sidebar (keeps the in-memory connection).
+                page.get_by_role('link', name='Agent Sessions').first.click(timeout=15_000)
 
+        def watch_checking() -> None:
+            # From here on the status must never go back to "Checking…": re-reads keep the last result.
+            card.evaluate("""c => { window.__checkingSeen = false; new MutationObserver(() => {
+                if (/Checking/i.test(c.querySelector('.MuiAlert-root')?.textContent ?? '')) window.__checkingSeen = true
+            }).observe(c, { subtree: true, childList: true, characterData: true }) }""")
+
+        open_sessions()
         card = page.locator('.MuiCard-root', has_text='Fund the agent from a Base Account').first
         try:
             card.wait_for(timeout=30_000)
@@ -350,15 +376,15 @@ def main() -> int:
                     'undeployed': 'This wallet can batch calls; the Base Account will be created by this batch.'}.get(SCENARIO, 'Coinbase Smart Wallet detected.')
         check('card recognises the account', status_text.strip().startswith(expected) and (SCENARIO == 'fresh' or 'also adds' not in status_text), status_text[:140])
         build = tested_build(page)
+        if 'pages_matches_checkout' in build:
+            check("the site's latest successful Pages build has this checkout's frontend", build['pages_matches_checkout'],
+                  f"deployed {str(build['pages_deployed_sha'])[:7]}, HEAD {build['repo_head'][:7]}{' + uncommitted edits' if build['repo_dirty'] else ''}")
         page.screenshot(path=str(OUT / '1_connected.png'), full_page=True)
 
         page.get_by_placeholder('0x… or click Generate agent key on the right').fill(AGENT)
         cta = card.get_by_role('button', name='Set up with one Base Account batch')
         check('CTA enabled once the agent is filled', cta.is_enabled(), cta.inner_text())
-        # From here on the status must never go back to "Checking…": re-reads keep the last result.
-        card.evaluate("""c => { window.__checkingSeen = false; new MutationObserver(() => {
-            if (/Checking/i.test(c.querySelector('.MuiAlert-root')?.textContent ?? '')) window.__checkingSeen = true
-        }).observe(c, { subtree: true, childList: true, characterData: true }) }""")
+        watch_checking()
         cta.click()
         done = card.locator('.MuiAlert-root', has_text='Done')
         page.wait_for_function(
@@ -406,6 +432,24 @@ def main() -> int:
             pending = status.inner_text().strip()
             check('until the fix, the status points to it and the main button is disabled (no second session)',
                   pending.startswith('One step left') and not cta.is_enabled(), pending[:120])
+            shown = card.locator('pre').inner_text()
+            open_sessions()  # a reload (reconnects the mock wallet if the page does not restore it)
+            card.wait_for(timeout=30_000)
+            page.wait_for_function("c => { const a = c.querySelector('.MuiAlert-root'); return a && !/Checking/i.test(a.textContent) }",
+                                   arg=card.element_handle(), timeout=30_000)
+            try:
+                fix.wait_for(timeout=15_000)
+            except Exception:
+                pass
+            kept = card.locator('pre')
+            survived = fix.count() == 1 and kept.count() == 1 and kept.inner_text() == shown and not cta.is_enabled()
+            check('after a reload the fix is still offered, with the same Spend Permission JSON', survived,
+                  ' '.join(status.inner_text().split())[:120])
+            if not survived:
+                page.screenshot(path=str(OUT / '2_after_reload.png'), full_page=True)
+                browser.close()
+                return write_result(account=account, build=build)
+            watch_checking()
             card.scroll_into_view_if_needed()
             card.screenshot(path=str(OUT / 'card_remedy.png'))
             if fix.count() != 1:

@@ -69,15 +69,16 @@ export function isUnsupportedMethod(e: unknown): boolean {
 }
 
 /**
- * The wallet refused the request's EIP-5792 version (an older wallet that only speaks 1.0): an
- * invalid-input (-32000, MetaMask's validateSendCallsVersion: "Version not supported: Got …, expected …")
- * or invalid-params (-32602) error naming wallet_sendCalls or a version. Anything looser (an internal
- * error or an SDK TypeError that happens to say "version") would resend and open a second wallet popup.
+ * The wallet refused the request's EIP-5792 version (an older wallet that only speaks 1.0): MetaMask's
+ * validateSendCallsVersion ("Version not supported: Got …, expected …", -32000 invalid input), or an
+ * invalid-params (-32602) error naming wallet_sendCalls or a version. Anything looser (an internal error
+ * or an SDK TypeError that happens to say "version") would resend and open a second wallet popup.
  */
 export function isVersionMismatch(e: unknown): boolean {
   if (isUserRejection(e)) return false
-  const { code, message } = walletError(e)
-  return (code === -32000 || code === -32602) && /wallet_sendCalls|2\.0\.0|version/i.test(message ?? '')
+  const { code, message = '' } = walletError(e)
+  if (code === -32000) return /version not supported/i.test(message)
+  return code === -32602 && /wallet_sendCalls|2\.0\.0|version/i.test(message)
 }
 
 /**

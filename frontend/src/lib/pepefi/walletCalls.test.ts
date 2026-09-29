@@ -132,6 +132,9 @@ describe('isVersionMismatch 只認「錢包不接受 2.0.0」，其他錯誤不�
     expect(isVersionMismatch(await sendCallsError({ code: -32602, message: 'Unsupported wallet_sendCalls version: 2.0.0' }))).toBe(true)
     expect(isVersionMismatch(await sendCallsError({ code: -32602, message: 'invalid params: expected version "1.0"' }))).toBe(true)
   })
+  it('-32000 但不是「Version not supported」（例如錢包在參數錯誤裡回顯 "version":"2.0.0"）→ 否', async () => {
+    expect(isVersionMismatch(await sendCallsError({ code: -32000, message: 'invalid params {"version":"2.0.0"}: calls[0].to missing' }))).toBe(false)
+  })
   it('內部錯誤剛好提到 version → 否', async () => {
     expect(isVersionMismatch(await sendCallsError({ code: -32603, message: 'Internal error: unsupported version of the account' }))).toBe(false)
   })

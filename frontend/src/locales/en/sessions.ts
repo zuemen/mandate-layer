@@ -113,11 +113,12 @@ export const sessions: Catalog['sessions'] = {
       'One step left: SpendPermissionManager must become an owner of this account before the agent can use the Spend Permission (see below).',
     spmOwnerUnknown:
       "Could not confirm yet whether the new Base Account lists SpendPermissionManager as an owner. The agent's top-ups only work if it does.",
+    ownerUnknownStatus: 'One check left: whether SpendPermissionManager is an owner of this account (see below).',
     checkAgain: 'Check again',
     reading: 'Reading the account…',
     fixDone: 'SpendPermissionManager is now an owner of this account. The agent can use the Spend Permission below.',
     fixTimeout:
-      'Submitted, but not confirmed after 90 seconds. Check your wallet, then press the button again: it reads the account first and sends nothing if SpendPermissionManager is already an owner.',
+      'Submitted, but not confirmed after 90 seconds. Wait until your wallet shows it confirmed, then reload this page: the card reads the account again.',
     permissionLabel: 'Spend Permission for the agent (top_up_margin)',
     copy: 'Copy',
     balance: 'mUSDC in this account: {amount}. The agent can only top up margin the account actually holds.',

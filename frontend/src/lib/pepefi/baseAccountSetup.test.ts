@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { ethers } from 'ethers'
+import { ethers, BrowserProvider } from 'ethers'
 
 import { ASSET_IDS } from 'src/contracts/addresses'
 
@@ -127,5 +127,55 @@ describe('readSpmOwner（批次建立帳戶之後，SpendPermissionManager 是�
     const s = counting()
     expect(await readSpmOwner(reader([new Error('network')], [TRUE]), recorded.account, s)).toBe('unknown')
     expect(s.n).toBe(4)
+  })
+})
+
+describe('readSpmOwner 經過 ethers BrowserProvider（卡片實際拿到的錯誤形狀）', () => {
+  const TRUE = ethers.AbiCoder.defaultAbiCoder().encode(['bool'], [true])
+  type RpcError = { code: number; message: string; data?: string }
+  /** A mock EIP-1193 wallet: eth_getCode answers `code`; eth_call answers from `calls` in order (objects are thrown as JSON-RPC errors). */
+  function wallet(code: string, calls: (string | RpcError)[]) {
+    let k = 0
+    return new BrowserProvider({
+      request: async ({ method }: { method: string }) => {
+        if (method === 'eth_chainId') return '0x14a34'
+        if (method === 'eth_getCode') return code
+        if (method === 'eth_call') {
+          const v = calls[Math.min(k++, calls.length - 1)]
+          if (typeof v === 'string') return v
+          throw v
+        }
+        throw new Error(`unexpected ${method}`)
+      },
+    })
+  }
+  const opts = () => {
+    const s = { n: 0, sleep: async () => { s.n++ } }
+    return s
+  }
+
+  it('RPC 錯誤（-32603，ethers 也包成 CALL_EXCEPTION）→ 重試，不當成「不是 Coinbase 錢包」', async () => {
+    const s = opts()
+    expect(await readSpmOwner(wallet('0x60', [{ code: -32603, message: 'Internal error' }, TRUE]), recorded.account, s)).toBe('yes')
+    expect(s.n).toBe(1)
+    expect(await readSpmOwner(wallet('0x60', [{ code: -32005, message: 'rate limited' }]), recorded.account, opts())).toBe('unknown')
+  })
+  it('合約 revert（有 revert data，或節點只說 execution reverted）→ notCoinbase，立即回答', async () => {
+    const s = opts()
+    expect(await readSpmOwner(wallet('0x60', [{ code: 3, message: 'execution reverted', data: '0x' }]), recorded.account, s)).toBe('notCoinbase')
+    expect(s.n).toBe(0)
+    expect(await readSpmOwner(wallet('0x60', [{ code: -32000, message: 'execution reverted' }]), recorded.account, opts())).toBe('notCoinbase')
+  })
+  it('回傳不是 bool 的資料 → notCoinbase', async () => {
+    expect(await readSpmOwner(wallet('0x60', ['0x1234']), recorded.account, opts())).toBe('notCoinbase')
+  })
+  it('空回應：先當成節點落後重試；一直是空的（例如 Safe 的 fallback）→ notCoinbase', async () => {
+    expect(await readSpmOwner(wallet('0x60', ['0x', TRUE]), recorded.account, opts())).toBe('yes')
+    const s = opts()
+    expect(await readSpmOwner(wallet('0x60', ['0x']), recorded.account, s)).toBe('notCoinbase')
+    expect(s.n).toBe(4)
+  })
+  it('帳戶一直沒有 code → unknown', async () => {
+    expect(await readSpmOwner(wallet('0x', [TRUE]), recorded.account, opts())).toBe('unknown')
   })
 })

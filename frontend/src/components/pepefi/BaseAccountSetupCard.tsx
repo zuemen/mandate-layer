@@ -2,7 +2,7 @@
 // The batch is the same one that ran on Base Sepolia on 2026-09-24 (demo/SPEND_PERMISSIONS_RUN.md);
 // a test pins the encoding to that transaction.
 import { useEffect, useState } from 'react'
-import { ethers, isAddress, isError, parseUnits, formatUnits } from 'ethers'
+import { ethers, isAddress, parseUnits, formatUnits } from 'ethers'
 
 import Card from '@mui/material/Card'
 import Link from '@mui/material/Link'
@@ -19,7 +19,7 @@ import { MONO } from 'src/components/pepefi/brandKit'
 import { getSessionManagerAddress } from 'src/contracts/sessionManager'
 import { ASSET_IDS, getAddresses } from 'src/contracts/addresses'
 import {
-  MAX_UINT48, addSpmOwnerCall, buildSetupCalls, permissionJsonOf, readSpmOwner, spmIsOwner,
+  MAX_UINT48, addSpmOwnerCall, buildSetupCalls, permissionJsonOf, readSpmOwner, spmIsOwner, type SpmOwner,
 } from 'src/lib/pepefi/baseAccountSetup'
 import { isUserRejection, sendCallsAndWait, supportsAtomicBatch, walletError, type SendOutcome } from 'src/lib/pepefi/walletCalls'
 
@@ -54,6 +54,37 @@ async function settle(check: () => Promise<boolean>) {
   }
 }
 
+/**
+ * The Spend Permission JSON (the agent needs it and the page has no other copy) and a pending owner fix
+ * survive a reload or switching accounts and back: kept per account in sessionStorage (nothing secret).
+ */
+type Saved = { permission: string | null; spmOwner: SpmOwner | null }
+const savedKey = (address: string) => `pepelab_base_account_setup_${BASE_SEPOLIA}_${address.toLowerCase()}`
+
+function loadSaved(address: string | null | undefined): Saved {
+  try {
+    const raw = address ? sessionStorage.getItem(savedKey(address)) : null
+    const v = raw ? (JSON.parse(raw) as Partial<Saved>) : {}
+    const owners: (SpmOwner | null)[] = ['yes', 'no', 'notCoinbase', 'unknown']
+    return {
+      permission: typeof v.permission === 'string' ? v.permission : null,
+      spmOwner: owners.includes(v.spmOwner ?? null) ? (v.spmOwner as SpmOwner) : null,
+    }
+  } catch {
+    return { permission: null, spmOwner: null }
+  }
+}
+
+function save(address: string | null | undefined, v: Saved) {
+  if (!address) return
+  try {
+    if (v.permission === null) sessionStorage.removeItem(savedKey(address))
+    else sessionStorage.setItem(savedKey(address), JSON.stringify(v))
+  } catch {
+    // storage unavailable: the card still works for this visit
+  }
+}
+
 function outcomeResult(out: Exclude<SendOutcome, { kind: 'confirmed' }>, timeoutText: string): Result {
   if (out.kind === 'unsupported') return { severity: 'error', text: t.sessions.baseAccount.unsupported }
   if (out.kind === 'timeout') return { severity: 'info', text: timeoutText }
@@ -83,7 +114,8 @@ function ResultAlert({ result }: { result: Result }) {
 }
 
 // Everything the card remembers (status, result, the Spend Permission, the pending owner fix) belongs to
-// one account, so a different account starts a fresh card; replies to an old account's requests are dropped.
+// one account, so a different account starts a fresh card (restoring what was saved for it); replies to
+// an old account's requests are dropped.
 export default function BaseAccountSetupCard(props: Props) {
   const wallet = usePepefiWallet()
   return <SetupCard key={wallet.address ?? ''} {...props} />
@@ -98,15 +130,17 @@ function SetupCard({ agent, perTrade, budget, maxLeverage, hours, onDone }: Prop
   const [readError, setReadError] = useState(false)
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<Result | null>(null)
-  const [permission, setPermission] = useState<string | null>(null)
+  const [permission, setPermission] = useState<string | null>(() => loadSaved(wallet.address).permission)
   // Set only after a confirmed batch from an account that did not exist yet: does the account the wallet
   // created list SpendPermissionManager as an owner? 'no' shows the fix, 'unknown' a way to read it again.
-  const [spmOwner, setSpmOwner] = useState<'yes' | 'no' | 'unknown' | null>(null)
+  const [spmOwner, setSpmOwner] = useState<SpmOwner | null>(() => loadSaved(wallet.address).spmOwner)
   const [fixResult, setFixResult] = useState<Result | null>(null)
   // Bumped after every send (and by Retry) so the account status and balance are read again.
   const [recheck, setRecheck] = useState(0)
 
   const onBaseSepolia = wallet.chainId === BASE_SEPOLIA
+
+  useEffect(() => save(wallet.address, { permission, spmOwner }), [wallet.address, permission, spmOwner])
 
   // Classify the connected account: deployed Coinbase Smart Wallet (with or without
   // SpendPermissionManager as owner), a wallet that will deploy one, or neither.
@@ -130,16 +164,16 @@ function SetupCard({ agent, perTrade, budget, maxLeverage, hours, onDone }: Prop
         return
       }
       if (code !== '0x') {
-        try {
-          next = (await spmIsOwner(provider, address)) ? 'smart' : 'smartAddOwner'
-        } catch (e) {
-          // A revert or an answer that is not a bool: some other contract. Anything else is a failed read.
-          if (!isError(e, 'CALL_EXCEPTION') && !isError(e, 'BAD_DATA')) {
-            failed()
-            return
-          }
-          next = 'notCoinbase'
+        // Same reading as after a batch: a revert or junk means another contract; an RPC error or an
+        // answer that stays unknown is a failed read (Retry), not a verdict on the account.
+        const owner = await readSpmOwner(provider, address, { tries: 2 })
+        if (owner === 'unknown') {
+          failed()
+          return
         }
+        next = owner === 'yes' ? 'smart' : owner === 'no' ? 'smartAddOwner' : 'notCoinbase'
+        // A pending fix follows any definite read (fixed from elsewhere, or 'unknown' resolved).
+        if (alive) setSpmOwner((s) => (s === 'no' || s === 'unknown' ? owner : s))
       } else {
         let caps: unknown = null
         try {
@@ -281,7 +315,9 @@ function SetupCard({ agent, perTrade, budget, maxLeverage, hours, onDone }: Prop
 
   const statusText = !onBaseSepolia
     ? t.sessions.baseAccount.wrongChain
-    : ownerPending ? t.sessions.baseAccount.ownerPending : t.sessions.baseAccount[kind]
+    : spmOwner === 'no' ? t.sessions.baseAccount.ownerPending
+      : spmOwner === 'unknown' ? t.sessions.baseAccount.ownerUnknownStatus
+        : t.sessions.baseAccount[kind]
 
   return (
     <Card sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
