@@ -54,6 +54,7 @@ export function Logo({
           color: 'var(--palette-primary-main)',
           lineHeight: 1,
           letterSpacing: '-0.5px',
+          whiteSpace: 'nowrap',
         }}
       >
         Mandate Layer
